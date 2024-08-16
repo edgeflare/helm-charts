@@ -1,0 +1,147 @@
+apiVersion: v1
+entries:
+  fabric-ca:
+  - annotations:
+      category: Blockchain
+    apiVersion: v2
+    appVersion: 1.5.6
+    created: "2024-08-16T12:06:10.476693+02:00"
+    description: Fabric CA issues enrollment certificates and TLS certificates for
+      Hyperledger Fabric deployments
+    digest: d01f788b5187abeda15cd53a21bef6e5aa2c2fccb24f0b1ecc26a168c6069eb7
+    icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
+    keywords:
+    - hyperledger
+    - fabric
+    - fabric-ca
+    - certificate-authority
+    maintainers:
+    - email: dev@edgeflare.io
+      name: edgeflare.io
+      url: https://github.com/edgeflare/charts
+    name: fabric-ca
+    type: application
+    urls:
+    - fabric-ca-0.0.1.tgz
+    version: 0.0.1
+  fabric-chaincode:
+  - annotations:
+      category: Blockchain
+    apiVersion: v2
+    appVersion: 2.5.4
+    created: "2024-08-16T12:06:10.476911+02:00"
+    description: Installs, approves and commits chaincode on a Hyperledger Fabric
+      channel
+    digest: f64603e0a2ce7691abebc4db6908159f0d3285d4729e59bbbddb47823773560e
+    icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
+    keywords:
+    - hyperledger
+    - fabric
+    - fabric-chaincode
+    maintainers:
+    - email: dev@edgeflare.io
+      name: edgeflare.io
+      url: https://github.com/edgeflare/charts
+    name: fabric-chaincode
+    type: application
+    urls:
+    - fabric-chaincode-0.0.1.tgz
+    version: 0.0.1
+  fabric-channel:
+  - annotations:
+      category: Blockchain
+    apiVersion: v2
+    appVersion: 2.5.4
+    created: "2024-08-16T12:06:10.47713+02:00"
+    description: Creates Fabric channel block. Joins orderers and peers to the channel
+    digest: b41c4d69ad98908e694a70ac2ec28ddc1197ca25f535a2cf6db54042e13d24cd
+    icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
+    keywords:
+    - hyperledger
+    - fabric
+    - fabric-channel
+    maintainers:
+    - email: dev@edgeflare.io
+      name: edgeflare.io
+      url: https://github.com/edgeflare/charts
+    name: fabric-channel
+    type: application
+    urls:
+    - fabric-channel-0.0.1.tgz
+    version: 0.0.1
+  fabric-orderer:
+  - annotations:
+      category: Blockchain
+    apiVersion: v2
+    appVersion: 2.5.4
+    created: "2024-08-16T12:06:10.477323+02:00"
+    description: Fabric Orderer validates and packages transactions into Blocks, and
+      distribute them to Peers
+    digest: bac4142d298e0ff1ff340974627e403593fe4d53a23b5728efae69f0794818a3
+    icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
+    keywords:
+    - hyperledger
+    - fabric
+    - fabric-orderer
+    maintainers:
+    - email: dev@edgeflare.io
+      name: edgeflare.io
+      url: https://github.com/edgeflare/charts
+    name: fabric-orderer
+    type: application
+    urls:
+    - fabric-orderer-0.0.1.tgz
+    version: 0.0.1
+  fabric-peer:
+  - annotations:
+      category: Blockchain
+    apiVersion: v2
+    appVersion: 2.5.4
+    created: "2024-08-16T12:06:10.478151+02:00"
+    dependencies:
+    - condition: couchdb.enabled
+      name: couchdb
+      repository: https://apache.github.io/couchdb-helm
+      tags:
+      - fabric-peer-state-database
+      version: 4.5.6
+    description: Fabric Peer stores and manages copies of ledgers and smart contracts
+      aka chaincode
+    digest: 401dac6c10506d4e2d3caf951d9e002e4c8624de0600ef586d5a9c14a22cd3bd
+    icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
+    keywords:
+    - hyperledger
+    - fabric
+    - fabric-peer
+    maintainers:
+    - email: dev@edgeflare.io
+      name: edgeflare.io
+      url: https://github.com/edgeflare/charts
+    name: fabric-peer
+    type: application
+    urls:
+    - fabric-peer-0.0.1.tgz
+    version: 0.0.1
+  hyperledger-explorer:
+  - annotations:
+      category: Blockchain
+    apiVersion: v2
+    appVersion: "2"
+    created: "2024-08-16T12:06:10.478296+02:00"
+    description: The official Hyperledger Fabric web UI for viewing transactions,
+      blocks, and associated data
+    digest: 8947ab0480761d2ef369e6e44f6f55c8491391d75fe63a5e206b72bb7066a1e7
+    icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
+    keywords:
+    - hyperledger
+    - fabric
+    - fabric-explorer
+    maintainers:
+    - email: dev@edgeflare.io
+      name: edgeflare.io
+      url: https://github.com/edgeflare/charts
+    name: hyperledger-explorer
+    urls:
+    - hyperledger-explorer-0.0.1.tgz
+    version: 0.0.1
+generated: "2024-08-16T12:06:10.4762+02:00"

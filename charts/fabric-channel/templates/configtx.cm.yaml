@@ -1,0 +1,143 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.channel.id }}-configtx
+  namespace: orderer
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+data:
+  configtx.yaml: |
+    {{- if .Values.channel.configtx }}
+{{ .Values.channel.configtx | indent 4 }}
+    {{- else }}
+    Organizations:
+    - &OrdererOrg
+      Name: OrdererOrg
+      ID: OrdererMSP
+      MSPDir: /fabric/orderer/msp
+      Policies:
+        Readers:
+          Type: Signature
+          Rule: "OR('OrdererMSP.member')"
+        Writers:
+          Type: Signature
+          Rule: "OR('OrdererMSP.member')"
+        Admins:
+          Type: Signature
+          Rule: "OR('OrdererMSP.admin')"
+      OrdererEndpoints:
+      {{- range .Values.orderers }}
+      - {{ .name | lower }}.orderer:7050
+      {{- end }}
+    {{- range .Values.orgs }}
+    - &{{ include "capitalizeFirst" .name }}
+      Name: {{ include "capitalizeFirst" .name }}MSP
+      ID: {{ include "capitalizeFirst" .name }}MSP
+      MSPDir: /fabric/{{ .name }}/msp
+      Policies:
+        Readers:
+          Type: Signature
+          Rule: "OR('{{ include "capitalizeFirst" .name }}MSP.admin', '{{ include "capitalizeFirst" .name }}MSP.peer', '{{ include "capitalizeFirst" .name }}MSP.client')"
+        Writers:
+          Type: Signature
+          Rule: "OR('{{ include "capitalizeFirst" .name }}MSP.admin', '{{ include "capitalizeFirst" .name }}MSP.client')"
+        Admins:
+          Type: Signature
+          Rule: "OR('{{ include "capitalizeFirst" .name }}MSP.admin')"
+        Endorsement:
+          Type: Signature
+          Rule: "OR('{{ include "capitalizeFirst" .name }}MSP.peer')"
+      AnchorPeers:
+      - Host: {{ (index .peers 0).name | lower }}.{{ .name | lower }}
+        Port: 7051
+    {{- end }}
+    Capabilities:
+      Channel: &ChannelCapabilities
+        V2_0: true
+      Orderer: &OrdererCapabilities
+        V2_0: true
+      Application: &ApplicationCapabilities
+        V2_5: true
+    Application: &ApplicationDefaults
+      Organizations:
+      Policies:
+        Readers:
+          Type: ImplicitMeta
+          Rule: "ANY Readers"
+        Writers:
+          Type: ImplicitMeta
+          Rule: "ANY Writers"
+        Admins:
+          Type: ImplicitMeta
+          Rule: "MAJORITY Admins"
+        LifecycleEndorsement:
+          Type: ImplicitMeta
+          Rule: "MAJORITY Endorsement"
+        Endorsement:
+          Type: ImplicitMeta
+          Rule: "MAJORITY Endorsement"
+      Capabilities:
+        <<: *ApplicationCapabilities
+    Orderer: &OrdererDefaults
+      Addresses:
+      {{- range .Values.orderers }}
+      - {{ .name }}.orderer:7050
+      {{- end }}
+      BatchTimeout: 2s
+      BatchSize:
+        MaxMessageCount: 10
+        AbsoluteMaxBytes: 99 MB
+        PreferredMaxBytes: 512 KB
+      Organizations:
+      Policies:
+        Readers:
+          Type: ImplicitMeta
+          Rule: "ANY Readers"
+        Writers:
+          Type: ImplicitMeta
+          Rule: "ANY Writers"
+        Admins:
+          Type: ImplicitMeta
+          Rule: "MAJORITY Admins"
+        BlockValidation:
+          Type: ImplicitMeta
+          Rule: "ANY Writers"
+      OrdererType: etcdraft
+      EtcdRaft:
+        Consenters:
+        {{- range .Values.orderers }}
+        - Host: {{ .name | lower }}.orderer
+          Port: 7050
+          ClientTLSCert: /fabric/orderer/{{ .name }}/tls/tls.crt
+          ServerTLSCert: /fabric/orderer/{{ .name }}/tls/tls.crt
+        {{- end }}
+    Channel: &ChannelDefaults
+      Policies:
+        Readers:
+          Type: ImplicitMeta
+          Rule: "ANY Readers"
+        Writers:
+          Type: ImplicitMeta
+          Rule: "ANY Writers"
+        Admins:
+          Type: ImplicitMeta
+          Rule: "MAJORITY Admins"
+      Capabilities:
+        <<: *ChannelCapabilities
+    Profiles:
+      RaftDefaultChannel:
+        <<: *ChannelDefaults
+        Orderer:
+          <<: *OrdererDefaults
+          Organizations:
+          - *OrdererOrg
+          Capabilities: *OrdererCapabilities
+        Application:
+          <<: *ApplicationDefaults
+          Organizations:
+          {{- range .Values.orgs }}
+          - *{{ include "capitalizeFirst" .name }}
+          {{- end }}
+          Capabilities: *ApplicationCapabilities
+    {{- end }}
+---

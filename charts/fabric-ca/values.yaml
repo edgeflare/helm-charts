@@ -1,0 +1,50 @@
+cert-manager:
+  enabled: false
+
+caOrg: org1
+
+network:
+  clusterDomain: cluster.local # reachable at ca.org1, ca.org1.svc, ca.org1.svc.cluster.local
+  publicDomain: example.test   # publicly reachable at ca.org1.example.test, ca-org1.example.test
+
+image:
+  repository: docker.io/hyperledger/fabric-ca
+  pullPolicy: IfNotPresent
+  tag: "1.5.6"
+
+# For TLS communication with other orgs.
+# orderer TLS CA cert is distributed to participating org namespaces as a secret named tlsca.orderer-certs
+# each participating org's TLS CA cert is distributed to orderer namespace and 
+# other org namespaces as a secret named tlsca.<orgName>-certs
+# additionally in orderer namespace each org's admin msp cert named as admin.<orgName>-certs secret is created
+# these additional certificates aren't created in CA org's own namespace
+# because we already have them in the CA org's namespace
+distributeTLSCACertToOrgs:
+- org1
+- org2
+
+pvc:
+  enabled: true # requires dynamic PV provisioning
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 2Gi
+    # storageClassName: "" # leave out to use default storage class
+
+tlsRoute:
+  enabled: true
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: istio-dev
+    namespace: istio-system
+    sectionName: tls-passthrough-443-fabnet
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+---

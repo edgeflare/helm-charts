@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.peer.name }}-config
+  namespace: {{ .Values.peer.org }}
+  labels:
+    app.kubernetes.io/name: fabric-peer
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  config.yaml: |-
+    NodeOUs:
+      Enable: true
+      ClientOUIdentifier:
+        Certificate: cacerts/cacert.pem
+        OrganizationalUnitIdentifier: client
+      PeerOUIdentifier:
+        Certificate: cacerts/cacert.pem
+        OrganizationalUnitIdentifier: peer
+      AdminOUIdentifier:
+        Certificate: cacerts/cacert.pem
+        OrganizationalUnitIdentifier: admin
+      OrdererOUIdentifier:
+        Certificate: cacerts/cacert.pem
+        OrganizationalUnitIdentifier: orderer
+---

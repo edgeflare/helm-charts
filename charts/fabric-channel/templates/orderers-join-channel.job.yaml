@@ -1,0 +1,182 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: orderers-join-{{ .Values.channel.id }}-channel
+  namespace: orderer
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  template:
+    spec:
+      securityContext:
+        {{- toYaml $.Values.securityContext | nindent 8 }}
+      volumes:
+      - name: channel-configtx
+        configMap:
+          name: {{ .Values.channel.id }}-configtx
+      - name: msp-nodeous
+        configMap:
+          name: {{ (index .Values.orderers 0).name }}-config # take first orderer node_ou. needs improvement
+          items:
+          - key: config.yaml
+            path: config.yaml
+      - name: channel-artifacts
+        emptyDir: {}
+      - name: orderer-admin-msp-keystore
+        secret:
+          secretName: admin-keypair
+          defaultMode: 420
+          items:
+          - key: tls.key
+            path: key.pem
+      - name: orderer-msp-cacerts
+        secret:
+          secretName: admin-keypair
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: cacert.pem
+      - name: orderer-msp-tlscacerts
+        secret:
+          secretName: admin-keypair-tls
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: tlscacert.pem
+      - name: orderer-msp-admincerts
+        secret:
+          secretName: admin-keypair
+          defaultMode: 420
+          items:
+          - key: tls.crt
+            path: cert.pem
+      - name: orderer-admin-keypair-tls
+        secret:
+          secretName: admin-keypair-tls
+          defaultMode: 420
+      {{- range .Values.orderers }}
+      - name: {{ .name }}-tls-cert
+        secret:
+          secretName: {{ .name }}-keypair-tls
+          defaultMode: 420
+          items:
+          - key: tls.crt
+            path: tls.crt
+      {{- end }}
+      {{- range .Values.orgs }}
+      - name: {{ .name }}-msp-cacerts
+        secret:
+          secretName: admin.{{ .name }}-certs
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: cacert.pem
+      - name: {{ .name }}-msp-admincerts
+        secret:
+          secretName: admin.{{ .name }}-certs
+          defaultMode: 420
+          items:
+          - key: tls.crt
+            path: cert.pem
+      - name: {{ .name }}-msp-tlscacerts
+        secret:
+          secretName: tlsca.{{ .name }}-certs
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: tlscacert.pem
+      {{- end }}
+      containers:
+      - command: ["/bin/bash", "-c"]
+        args:
+        - |
+          set -euo pipefail
+          
+          # Generate the configuration block
+          configtxgen -profile ${CHANNEL_PROFILE} -channelID ${CHANNEL_ID} -outputBlock /fabric/channel-artifacts/${CHANNEL_ID}.block
+          
+          # Join each orderer to the channel with retries
+          retries=5
+          for orderer in {{ range .Values.orderers }}{{ .name }}.orderer {{ end }}; do
+            for ((i=0; i<retries; i++)); do
+              osnadmin channel join --channelID ${CHANNEL_ID} --config-block /fabric/channel-artifacts/${CHANNEL_ID}.block -o ${orderer}:9443 \
+              --ca-file ${OSN_TLS_CA_ROOT_CERT} --client-cert ${OSN_ADMIN_TLS_SIGN_CERT} --client-key ${OSN_ADMIN_TLS_PRIVATE_KEY} && break
+              echo "Attempt $(($i+1)) of $retries for ${orderer} failed! Trying again in 10 seconds..."
+              sleep 10
+            done
+            if [ $i -eq $retries ]; then
+              echo "Failed to join ${orderer} to channel ${CHANNEL_ID} after $retries attempts."
+              exit 1
+            fi
+            echo "Successfully joined ${orderer} to channel ${CHANNEL_ID}."
+          done
+        env:
+        - name: CHANNEL_ID
+          value: {{ .Values.channel.id }}
+        - name: CHANNEL_PROFILE
+          value: {{ .Values.channel.profileName }}
+        - name: FABRIC_CFG_PATH
+          value: /fabric/config
+        - name: OSN_ADMIN_TLS_PRIVATE_KEY
+          value: /fabric/orderer/admin/tls/tls.key
+        - name: OSN_ADMIN_TLS_SIGN_CERT
+          value: /fabric/orderer/admin/tls/tls.crt
+        - name: OSN_TLS_CA_ROOT_CERT
+          value: /fabric/orderer/admin/tls/ca.crt
+        image: docker.io/hyperledger/fabric-tools:2.5.4
+        name: orderers-join-channel
+        volumeMounts:
+        - mountPath: /fabric/config/configtx.yaml
+          name: channel-configtx
+          subPath: configtx.yaml
+        - mountPath: /fabric/channel-artifacts
+          name: channel-artifacts
+        # orderer msp
+        - mountPath: /fabric/orderer/msp/config.yaml # needs improvement
+          name: msp-nodeous
+          subPath: config.yaml
+        - mountPath: /fabric/orderer/msp/cacerts/cacert.pem
+          name: orderer-msp-cacerts
+          subPath: cacert.pem
+        - mountPath: /fabric/orderer/msp/admincerts/cert.pem
+          name: orderer-msp-admincerts
+          subPath: cert.pem
+        - mountPath: /fabric/orderer/msp/tlscacerts/tlscacert.pem
+          name: orderer-msp-tlscacerts
+          subPath: tlscacert.pem
+        # orderers (ordering nodes) tls certs
+        {{- range .Values.orderers }}
+        - mountPath: /fabric/orderer/{{ .name }}/tls/tls.crt
+          name: {{ .name }}-tls-cert
+          subPath: tls.crt
+        {{- end }}
+        # orderer admin msp and tls
+        - mountPath: /fabric/orderer/admin/msp/keystore/key.pem
+          name: orderer-admin-msp-keystore
+          subPath: key.pem
+        - mountPath: /fabric/orderer/admin/msp/signcerts/cert.pem
+          name: orderer-msp-admincerts
+          subPath: cert.pem
+        - mountPath: /fabric/orderer/admin/msp/cacerts/cacert.pem
+          name: orderer-msp-cacerts
+          subPath: cacert.pem
+        - mountPath: /fabric/orderer/admin/tls
+          name: orderer-admin-keypair-tls
+        # org msps
+        {{- range .Values.orgs }}
+        - mountPath: /fabric/{{ .name }}/msp/config.yaml # needs improvement
+          name: msp-nodeous
+          subPath: config.yaml
+        - mountPath: /fabric/{{ .name }}/msp/cacerts/cacert.pem
+          name: {{ .name }}-msp-cacerts
+          subPath: cacert.pem
+        - mountPath: /fabric/{{ .name }}/msp/admincerts/cert.pem
+          name: {{ .name }}-msp-admincerts
+          subPath: cert.pem
+        - mountPath: /fabric/{{ .name }}/msp/tlscacerts/tlscacert.pem
+          name: {{ .name }}-msp-tlscacerts
+          subPath: tlscacert.pem
+        {{- end }}
+        workingDir: /fabric
+      restartPolicy: OnFailure
+---

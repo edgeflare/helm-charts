@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: explorer-db
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  name: explorer-db
+  namespace: {{ .Values.org }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: explorer-db
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: explorer-db
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+      - image: ghcr.io/hyperledger-labs/explorer-db:latest
+        name: explorer-db
+        ports:
+        - containerPort: 5432
+        env:
+        - name: DATABASE_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: explorer-db
+              key: PGDATABASE
+        - name: DATABASE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: explorer-db
+              key: PGUSER
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: explorer-db
+              key: PGPASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: explorer-db
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  name: explorer-db
+  namespace: {{ .Values.org }}
+spec:
+  ports:
+  - name: tcp-postgres
+    port: 5432
+    protocol: TCP
+    targetPort: 5432
+  selector:
+    app.kubernetes.io/name: explorer-db
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  type: ClusterIP
+---

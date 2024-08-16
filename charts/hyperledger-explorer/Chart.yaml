@@ -1,0 +1,13 @@
+apiVersion: v2
+name: hyperledger-explorer
+description: The official Hyperledger Fabric web UI for viewing transactions, blocks, and associated data
+version: 0.0.1
+appVersion: 2.0
+icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
+keywords: ["hyperledger", "fabric", "fabric-explorer"]
+annotations:
+  category: Blockchain
+maintainers:
+- name: edgeflare.io
+  email: dev@edgeflare.io
+  url: https://github.com/edgeflare/charts

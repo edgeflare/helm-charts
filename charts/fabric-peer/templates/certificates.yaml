@@ -1,0 +1,73 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.peer.name }}
+  namespace: {{ .Values.peer.org }}
+  labels:
+    app.kubernetes.io/name: fabric-peer
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  subject:
+    organizations:
+    - {{ .Values.peer.org }}
+    organizationalUnits:
+    - peer
+  usages:
+  - server auth
+  - client auth
+  - digital signature
+  - key encipherment
+  duration: 87600h # 10y
+  renewBefore: 2160h # 90d
+  commonName: {{ .Values.peer.name }}.{{ .Values.peer.org }}
+  dnsNames:
+  - {{ .Values.peer.name }}.{{ .Values.peer.org }}
+  - {{ .Values.peer.name }}.{{ .Values.peer.org }}.svc
+  - {{ .Values.peer.name }}.{{ .Values.peer.org }}.svc.{{ .Values.network.clusterDomain }}
+  - {{ .Values.peer.name }}.{{ .Values.peer.org }}.{{ .Values.network.publicDomain }}
+  - {{ .Values.peer.name }}-{{ .Values.peer.org }}.{{ .Values.network.publicDomain }}
+  ipAddresses:
+  - 127.0.0.1
+  issuerRef:
+    group: cert-manager.io
+    kind: Issuer
+    name: {{ .Values.peer.org }}-issuer
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  secretName: {{ .Values.peer.name }}-keypair
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.peer.name }}-tls
+  namespace: {{ .Values.peer.org }}
+  labels:
+    app.kubernetes.io/name: fabric-peer
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  usages:
+  - server auth
+  - client auth
+  - digital signature
+  - key encipherment
+  duration: 87600h # 10y
+  renewBefore: 2160h # 90d
+  commonName: {{ .Values.peer.name }}.{{ .Values.peer.org }}
+  dnsNames:
+  - {{ .Values.peer.name }}.{{ .Values.peer.org }}
+  - {{ .Values.peer.name }}.{{ .Values.peer.org }}.svc
+  - {{ .Values.peer.name }}.{{ .Values.peer.org }}.svc.{{ .Values.network.clusterDomain }}
+  - {{ .Values.peer.name }}.{{ .Values.peer.org }}.{{ .Values.network.publicDomain }}
+  - {{ .Values.peer.name }}-{{ .Values.peer.org }}.{{ .Values.network.publicDomain }}
+  ipAddresses:
+  - 127.0.0.1
+  issuerRef:
+    group: cert-manager.io
+    kind: Issuer
+    name: {{ .Values.peer.org }}-tls-issuer
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  secretName: {{ .Values.peer.name }}-keypair-tls
+---

@@ -1,0 +1,67 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: admin.{{ .Values.caOrg }}
+  namespace: {{ .Values.caOrg }}
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  subject:
+    organizations:
+    - {{ .Values.caOrg }}
+    organizationalUnits:
+    - admin
+  usages:
+  - server auth
+  - client auth
+  - digital signature
+  - key encipherment
+  duration: 87600h # 10y
+  renewBefore: 2160h # 90d
+  commonName: admin.{{ .Values.caOrg }}
+  dnsNames:
+  - admin.{{ .Values.caOrg }}
+  - admin.{{ .Values.caOrg }}.svc
+  - admin.{{ .Values.caOrg }}.svc.{{ .Values.network.clusterDomain }}
+  - admin.{{ .Values.caOrg }}.{{ .Values.network.publicDomain }}
+  - admin-{{ .Values.caOrg }}.{{ .Values.network.publicDomain }}
+  issuerRef:
+    group: cert-manager.io
+    kind: Issuer
+    name: {{ .Values.caOrg }}-issuer
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  secretName: admin-keypair
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: admin.{{ .Values.caOrg }}-tls
+  namespace: {{ .Values.caOrg }}
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  usages:
+  - server auth
+  - client auth
+  - digital signature
+  - key encipherment
+  duration: 87600h # 10y
+  renewBefore: 2160h # 90d
+  commonName: admin.{{ .Values.caOrg }}
+  dnsNames:
+  - admin.{{ .Values.caOrg }}
+  - admin.{{ .Values.caOrg }}.svc
+  - admin.{{ .Values.caOrg }}.svc.{{ .Values.network.clusterDomain }}
+  - admin.{{ .Values.caOrg }}.{{ .Values.network.publicDomain }}
+  - admin-{{ .Values.caOrg }}.{{ .Values.network.publicDomain }}
+  issuerRef:
+    group: cert-manager.io
+    kind: Issuer
+    name: {{ .Values.caOrg }}-tls-issuer
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  secretName: admin-keypair-tls
+---

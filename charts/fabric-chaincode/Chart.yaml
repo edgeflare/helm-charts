@@ -1,0 +1,14 @@
+apiVersion: v2
+name: fabric-chaincode
+description: Installs, approves and commits chaincode on a Hyperledger Fabric channel
+type: application
+version: "0.0.1"
+appVersion: "2.5.4"
+icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
+keywords: ["hyperledger", "fabric", "fabric-chaincode"]
+annotations:
+  category: Blockchain
+maintainers:
+- name: edgeflare.io
+  email: dev@edgeflare.io
+  url: https://github.com/edgeflare/charts

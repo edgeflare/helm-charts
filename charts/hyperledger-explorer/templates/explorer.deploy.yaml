@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: hyperledger-explorer
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  name: hyperledger-explorer
+  namespace: {{ .Values.org }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hyperledger-explorer
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hyperledger-explorer
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      volumes:
+      - name: explorer-config
+        configMap:
+          name: explorer-config
+      - name: explorer-connection-profile
+        secret:
+          secretName: explorer-connection-profile
+          defaultMode: 420
+      - name: admin-msp-keystore
+        secret:
+          secretName: admin-keypair
+          defaultMode: 420
+          items:
+          - key: tls.key
+            path: key.pem
+      - name: admin-msp-signcerts
+        secret:
+          secretName: admin-keypair
+          defaultMode: 420
+          items:
+          - key: tls.crt
+            path: cert.pem
+      - name: admin-msp-tlscacerts
+        secret:
+          secretName: admin-keypair-tls
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: tlscacert.pem
+      - name: explorer-wallet-dir
+        emptyDir: {}
+      containers:
+      - image: ghcr.io/hyperledger-labs/explorer:latest
+        imagePullPolicy: IfNotPresent
+        name: explorer
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DATABASE_HOST
+          value: explorer-db
+        - name: DATABASE_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: explorer-db
+              key: PGDATABASE
+        - name: DATABASE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: explorer-db
+              key: PGUSER
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: explorer-db
+              key: PGPASSWORD
+        - name: LOG_LEVEL_APP
+          value: DEBUG
+        - name: LOG_LEVEL_DB
+          value: DEBUG
+        - name: LOG_LEVEL_CONSOLE
+          value: DEBUG
+        - name: LOG_CONSOLE_STDOUT
+          value: "true"
+        - name: DISCOVERY_AS_LOCALHOST
+          value: "false"
+        volumeMounts:
+        - mountPath: /opt/explorer/app/platform/fabric/config.json
+          name: explorer-config
+          subPath: config.json
+        - mountPath: /fabric/{{ .Values.org }}/explorer/connection-profile.json
+          name: explorer-connection-profile
+          subPath: connection-profile.json
+        - mountPath: /fabric/{{ .Values.org }}/admin/msp/keystore/key.pem
+          name: admin-msp-keystore
+          subPath: key.pem
+        - mountPath: /fabric/{{ .Values.org }}/admin/msp/signcerts/cert.pem
+          name: admin-msp-signcerts
+          subPath: cert.pem
+        - mountPath: /fabric/{{ .Values.org }}/tls/tlscacert.pem
+          name: admin-msp-tlscacerts
+          subPath: tlscacert.pem
+        - mountPath: /opt/explorer/wallet
+          name: explorer-wallet-dir
+      initContainers:
+      - name: ensure-explorer-db
+        image: docker.io/library/postgres:16
+        command:
+        - /bin/sh
+        - -c
+        - |
+          until pg_isready; do
+            echo "Waiting for database to be ready..."
+            sleep 5
+          done
+        envFrom:
+        - secretRef:
+            name: explorer-db
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: hyperledger-explorer
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  name: hyperledger-explorer
+  namespace: {{ .Values.org }}
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: hyperledger-explorer
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  type: ClusterIP
+---

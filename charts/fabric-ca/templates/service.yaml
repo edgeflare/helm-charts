@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ca
+  labels:
+    app.kubernetes.io/name: fabric-ca
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  namespace: {{ .Values.caOrg }}
+spec:
+  ports:
+  - name: http-ca
+    port: 7054
+    targetPort: ca
+  - name: http-operation
+    port: 9443
+    targetPort: operation
+  selector:
+    app.kubernetes.io/name: fabric-ca
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  type: ClusterIP
+---
+

@@ -1,0 +1,13 @@
+{{- if eq .Values.pvc.enabled true }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.peer.name}}-data
+  namespace: {{ .Values.peer.org }}
+  labels:
+    app.kubernetes.io/name: fabric-peer
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+{{- toYaml .Values.pvc.spec | nindent 2 }}
+---
+{{- end }}

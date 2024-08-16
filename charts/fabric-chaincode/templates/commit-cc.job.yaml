@@ -1,0 +1,158 @@
+{{- $firstOrg := (index .Values.orgs 0) }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: commit-{{ .Values.cc.name }}-in-{{ .Values.cc.channelId }}-channel
+  namespace: {{ $firstOrg.name }}
+spec:
+  template:
+    spec:
+      containers:
+      - args:
+        - |
+          set -eo pipefail
+          {{- include "retryFunction" . | nindent 10 }}
+
+          echo "sleeping 10 seconds to ensure ccaaas is fully ready"
+          sleep 10
+
+          echo "Committing the chaincode..."
+          retry 5 2 peer lifecycle chaincode commit --channelID ${CHANNEL_ID} --name ${CC_NAME} --tls true \
+            --cafile ${ORDERER_TLS_ROOTCERT_FILE} --version ${CC_VERSION} --sequence ${CC_SEQUENCE} --waitForEvent \
+            {{- range .Values.orgs }}
+            {{- $org := .name }}
+            {{- range .peers }}
+            --peerAddresses {{ .name }}.{{ $org }}:7051 --tlsRootCertFiles /fabric/{{ $org }}/admin/tls/ca.crt \
+            {{- end }}
+            {{- end }}
+
+            echo "Querying committed chaincode"
+            retry 5 2 peer lifecycle chaincode querycommitted --channelID "${CHANNEL_ID}" --name "${CC_NAME}" \
+              --tls true --cafile "${ORDERER_TLS_ROOTCERT_FILE}" --output json
+        command:
+        - /bin/bash
+        - -c
+        env:
+        - name: CHANNEL_ID
+          value: {{ $.Values.cc.channelId }}
+        - name: CC_NAME
+          value: {{ .Values.cc.name }}
+        - name: CC_VERSION
+          value: {{ .Values.cc.version | quote }}
+        - name: CC_LABEL
+          value: {{ .Values.cc.name }}_{{ $.Values.cc.version }}
+        - name: CC_SIGNATURE_POLICY
+          value: {{ .Values.cc.policy | quote }}
+        - name: CC_SEQUENCE
+          value: {{ .Values.cc.sequence | quote }}
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ include "capitalizeFirst" $firstOrg.name }}MSP
+        - name: CORE_PEER_ADDRESS
+          value: {{ (index $firstOrg.peers 0).name }}.{{ $firstOrg.name }}:7051
+        - name: FABRIC_LOGGING_SPEC
+          value: INFO
+        - name: CORE_PEER_MSPCONFIGPATH
+          value: /fabric/{{ $firstOrg.name }}/admin/msp
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: /fabric/{{ $firstOrg.name }}/admin/tls/tls.crt
+        - name: CORE_PEER_TLS_ENABLED
+          value: "true"
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: /fabric/{{ $firstOrg.name }}/admin/tls/tls.key
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /fabric/{{ $firstOrg.name }}/admin/tls/ca.crt
+        - name: ORDERER_TLS_ROOTCERT_FILE
+          value: /fabric/orderer/tls/ca.crt
+        - name: CHAINCODE_CLIENT_CA_CERT
+          value: /fabric/{{ $firstOrg.name }}/admin/tls/ca.crt
+        - name: CHAINCODE_ID # not used. ensuring the install-approve job is completed
+          valueFrom:
+            configMapKeyRef:
+              name: {{ $.Values.cc.name }}-package-id
+              key: package-id
+        image: docker.io/hyperledger/fabric-tools:2.5.4
+        imagePullPolicy: Always
+        name: install-chaincode
+        volumeMounts:
+        - mountPath: /fabric/chaincode
+          name: fabric-chaincode
+        - mountPath: /fabric/{{ $firstOrg.name }}/admin/msp/config.yaml
+          name: admin-msp-nodeou
+          subPath: config.yaml
+        - mountPath: /fabric/{{ $firstOrg.name }}/admin/msp/cacerts/cacert.pem
+          name: admin-msp-cacerts
+          subPath: cacert.pem
+        - mountPath: /fabric/{{ $firstOrg.name }}/admin/msp/keystore/key.pem
+          name: admin-msp-keystore
+          subPath: key.pem
+        - mountPath: /fabric/{{ $firstOrg.name }}/admin/msp/signcerts/cert.pem
+          name: admin-msp-signcerts
+          subPath: cert.pem
+        - mountPath: /fabric/orderer/tls/ca.crt
+          name: orderer-tlscacerts
+          subPath: ca.crt
+        {{- range .Values.orgs }}
+        {{- if eq .name $firstOrg.name }}
+        - mountPath: /fabric/{{ .name }}/admin/tls
+          name: {{ $firstOrg.name }}-admin-keypair-tls
+        {{- else }}
+        - mountPath: /fabric/{{ .name }}/admin/tls/ca.crt
+          name: {{ .name }}-tlscacerts
+          subPath: ca.crt
+        {{- end }}
+        {{- end }}
+        workingDir: /fabric/chaincode
+      restartPolicy: OnFailure
+      securityContext:
+      {{- toYaml $.Values.securityContext | nindent 8 }}
+      volumes:
+      - emptyDir: {}
+        name: fabric-chaincode
+      - name: admin-msp-nodeou
+        configMap:
+          name: {{ (index $firstOrg.peers 0).name }}-config # first peer node_ou config
+      - name: admin-msp-cacerts
+        secret:
+          secretName: admin-keypair
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: cacert.pem
+      - name: admin-msp-keystore
+        secret:
+          secretName: admin-keypair
+          defaultMode: 420
+          items:
+          - key: tls.key
+            path: key.pem
+      - name: admin-msp-signcerts
+        secret:
+          secretName: admin-keypair
+          defaultMode: 420
+          items:
+          - key: tls.crt
+            path: cert.pem
+      {{- range .Values.orgs }}
+      {{- if eq .name $firstOrg.name }}
+      - name: {{ .name }}-admin-keypair-tls
+        secret:
+          secretName: admin-keypair-tls
+          defaultMode: 420
+      {{- else }}
+      - name: {{ .name }}-tlscacerts
+        secret:
+          secretName: tlsca.{{ .name }}-certs
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: ca.crt
+      {{- end }}
+      {{- end }}
+      - name: orderer-tlscacerts
+        secret:
+          secretName: tlsca.orderer-certs
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: ca.crt
+---

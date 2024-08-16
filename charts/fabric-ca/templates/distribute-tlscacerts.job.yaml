@@ -1,0 +1,62 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: distribute-{{ .Values.caOrg }}-tlscacerts-admincerts
+  namespace: {{ .Values.caOrg }}
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  template:
+    spec:
+      serviceAccountName: {{ .Values.caOrg }}-tlscacerts-admincerts-distributor
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      volumes:
+      - name: msp-admincerts # to orderer namespace
+        secret:
+          secretName: admin-keypair
+          defaultMode: 420
+          items:
+          - key: tls.crt
+            path: tls.crt
+          - key: ca.crt
+            path: ca.crt
+      - name: tlsca-certs # to orderer and orgs namespaces
+        secret:
+          secretName: tlsca.{{ .Values.caOrg }}-keypair
+          defaultMode: 420
+          items:
+          - key: tls.crt
+            path: tls.crt
+          - key: ca.crt
+            path: ca.crt
+      containers:
+      - name: distribute-tlscacerts
+        image: docker.io/bitnami/kubectl:latest
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          set -exuo pipefail
+          # orgs' admin-msp-cert and tlscacert to orderer namespace
+          {{ if ne .Values.caOrg "orderer" }}
+          kubectl -n orderer create secret generic admin.{{ .Values.caOrg }}-certs --from-file=ca.crt=/fabric/admin/msp/admincerts/ca.crt --from-file=tls.crt=/fabric/admin/msp/admincerts/tls.crt
+          kubectl -n orderer create secret generic tlsca.{{ .Values.caOrg }}-certs --from-file=ca.crt=/fabric/tlsca/ca.crt --from-file=tls.crt=/fabric/tlsca/tls.crt
+          {{- end }}
+
+          # tlscacert to other org namespaces
+          {{- range .Values.distributeTLSCACertToOrgs }}
+          {{ if ne . $.Values.caOrg }}
+          kubectl -n {{ . }} create secret generic tlsca.{{ $.Values.caOrg }}-certs --from-file=ca.crt=/fabric/tlsca/ca.crt --from-file=tls.crt=/fabric/tlsca/tls.crt
+          {{- end }}
+          {{- end }}
+        volumeMounts:
+        - mountPath: /fabric/tlsca
+          name: tlsca-certs
+        - mountPath: /fabric/admin/msp/admincerts
+          name: msp-admincerts
+        workingDir: /fabric
+      restartPolicy: OnFailure
+---
