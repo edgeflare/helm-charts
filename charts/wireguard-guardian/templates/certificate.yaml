@@ -1,0 +1,34 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: project-default
+  namespace: {{ .Release.Namespace }}
+spec:
+  commonName: '*.{{ .Release.Namespace }}'
+  dnsNames:
+  - "*.{{ .Release.Namespace }}"
+  - "*.{{ .Release.Namespace }}.svc"
+  - "*.{{ .Release.Namespace }}.svc.cluster.local"
+  {{- range .Values.domains }}
+  - {{ . }}
+  - "*.{{ . }}"
+  {{- end }}  
+  duration: 87600h0m0s
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: selfsigned
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  renewBefore: 2160h0m0s
+  secretName: project-default-tls
+  subject:
+    organizations:
+    - system:nodes
+  usages:
+  - server auth
+  - client auth
+  - digital signature
+  - key encipherment
+---

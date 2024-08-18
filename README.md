@@ -10,6 +10,9 @@ helm install my-release edgeflare/<chart-name>
 ```
 
 ## Available Charts
+#### VPN
+- [wireguard-guardian](./charts/wireguard-guardian/)
+#### Blockchain
 - [fabric-ca](./charts/fabric-ca/)
 - [fabric-orderer](./charts/fabric-orderer/)
 - [fabric-peer](./charts/fabric-peer/)

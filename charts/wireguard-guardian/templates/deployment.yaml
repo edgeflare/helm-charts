@@ -1,0 +1,164 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: wg-guardian
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  name: wg-guardian
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wg-guardian
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wg-guardian
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}
+      containers:
+      - args:
+        - |
+          echo "checking if wg0 interface already exists"
+          if ip link show wg0 > /dev/null 2>&1; then
+              echo "interface wg0 already exists, bringing it down"
+              wg-quick down wg0
+          fi
+
+          echo "bringing up the WireGuard interface"
+          wg-quick up /etc/wireguard/wg0.conf
+
+          if [ $? -ne 0 ]; then
+            echo "bringing up WireGuard interface errored" >&2
+            exit 1
+          fi
+          echo "running WireGuard interface in the background"
+          wg show
+          
+          echo "setting up iptables"
+          echo "allowing traffic to be forwarded in and out of the wg0 interface"
+          iptables -A FORWARD -i wg0 -j ACCEPT
+          iptables -A FORWARD -o wg0 -j ACCEPT
+          echo "enabling VPN to access the internet"
+          iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+          echo "iptables setup complete"
+
+          echo "running container indefinitely"
+          tail -f /dev/null
+          # while true; do; wg show; sleep 60; done
+        command:
+        - /bin/sh
+        - -c
+        image: {{ .Values.wireguard.image }}:{{ .Values.wireguard.tag }}
+        imagePullPolicy: IfNotPresent
+        name: wireguard
+        ports:
+        - containerPort: 51820
+          protocol: UDP
+        resources:
+          limits:
+            cpu: 200m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+          privileged: true
+        livenessProbe:
+          exec:
+            command:
+            - wg
+            - show
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        # readinessProbe: {} # check for successful tunnel establishment
+        volumeMounts:
+        - mountPath: /etc/wireguard
+          name: wireguard-config
+      - command:
+        - /coredns
+        - -conf
+        - /etc/coredns/Corefile
+        image: {{ .Values.coredns.image }}:{{ .Values.coredns.tag }}
+        imagePullPolicy: IfNotPresent
+        name: coredns
+        ports:
+        - containerPort: 53
+          name: udp-dns
+          protocol: UDP
+        - containerPort: 53
+          name: tcp-dns
+          protocol: TCP
+        resources:
+          limits:
+            memory: 170Mi
+          requests:
+            cpu: 100m
+            memory: 70Mi
+        securityContext:
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /etc/coredns/Corefile
+          name: coredns-corefile
+          subPath: Corefile
+      - command:
+        - /usr/local/bin/envoy
+        - --config-path
+        - /etc/envoy/envoy.yaml
+        image: {{ .Values.envoy.image }}:{{ .Values.envoy.tag }}
+        imagePullPolicy: IfNotPresent
+        name: envoy
+        ports:
+        - containerPort: 5432
+          name: tcp-postgres
+          protocol: TCP
+        - containerPort: 9901
+          name: http-admin
+          protocol: TCP
+        resources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsUser: 1000
+        volumeMounts:
+        - mountPath: /etc/envoy/envoy.yaml
+          name: envoy-config
+          subPath: envoy.yaml
+        - mountPath: /etc/envoy/tls
+          name: tls-keypair
+      dnsPolicy: ClusterFirstWithHostNet
+      securityContext:
+        {{- toYaml .Values.securityContext | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      volumes:
+      - secret:
+          defaultMode: 420
+          secretName: wireguard-config
+        name: wireguard-config
+      - configMap:
+          defaultMode: 420
+          name: coredns-corefile
+        name: coredns-corefile
+      - configMap:
+          defaultMode: 420
+          name: envoy-config
+        name: envoy-config
+      - name: tls-keypair
+        secret:
+          defaultMode: 420
+          secretName: project-default-tls
+---

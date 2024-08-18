@@ -5,10 +5,10 @@ entries:
       category: Blockchain
     apiVersion: v2
     appVersion: 1.5.6
-    created: "2024-08-16T12:06:10.476693+02:00"
+    created: "2024-08-18T11:26:11.072551+02:00"
     description: Fabric CA issues enrollment certificates and TLS certificates for
       Hyperledger Fabric deployments
-    digest: d01f788b5187abeda15cd53a21bef6e5aa2c2fccb24f0b1ecc26a168c6069eb7
+    digest: 24d65535e3452cbb62392ecd152e0b9aa6f8a6dc1086ea53d1743fae54b4be30
     icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
     keywords:
     - hyperledger
@@ -29,10 +29,10 @@ entries:
       category: Blockchain
     apiVersion: v2
     appVersion: 2.5.4
-    created: "2024-08-16T12:06:10.476911+02:00"
+    created: "2024-08-18T11:26:11.072769+02:00"
     description: Installs, approves and commits chaincode on a Hyperledger Fabric
       channel
-    digest: f64603e0a2ce7691abebc4db6908159f0d3285d4729e59bbbddb47823773560e
+    digest: ff0597fd25ecbb893a0857b618856ab59747ee523a3d7dedb580fce70b3a4a86
     icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
     keywords:
     - hyperledger
@@ -52,9 +52,9 @@ entries:
       category: Blockchain
     apiVersion: v2
     appVersion: 2.5.4
-    created: "2024-08-16T12:06:10.47713+02:00"
+    created: "2024-08-18T11:26:11.072979+02:00"
     description: Creates Fabric channel block. Joins orderers and peers to the channel
-    digest: b41c4d69ad98908e694a70ac2ec28ddc1197ca25f535a2cf6db54042e13d24cd
+    digest: cbc30c249c132f64f2113abe74b5d10314bc3fc93777615735f90f068f7366b0
     icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
     keywords:
     - hyperledger
@@ -74,10 +74,10 @@ entries:
       category: Blockchain
     apiVersion: v2
     appVersion: 2.5.4
-    created: "2024-08-16T12:06:10.477323+02:00"
+    created: "2024-08-18T11:26:11.073162+02:00"
     description: Fabric Orderer validates and packages transactions into Blocks, and
       distribute them to Peers
-    digest: bac4142d298e0ff1ff340974627e403593fe4d53a23b5728efae69f0794818a3
+    digest: ddabaeb312c290ef505ba3c67c9843f208e3f76bb12585fad5decb8423dff325
     icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
     keywords:
     - hyperledger
@@ -97,7 +97,7 @@ entries:
       category: Blockchain
     apiVersion: v2
     appVersion: 2.5.4
-    created: "2024-08-16T12:06:10.478151+02:00"
+    created: "2024-08-18T11:26:11.07396+02:00"
     dependencies:
     - condition: couchdb.enabled
       name: couchdb
@@ -107,7 +107,7 @@ entries:
       version: 4.5.6
     description: Fabric Peer stores and manages copies of ledgers and smart contracts
       aka chaincode
-    digest: 401dac6c10506d4e2d3caf951d9e002e4c8624de0600ef586d5a9c14a22cd3bd
+    digest: eb1ac242ae8f066fd901efdee821f31fce708f6229a7c691fb935e94755ca0de
     icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
     keywords:
     - hyperledger
@@ -127,10 +127,10 @@ entries:
       category: Blockchain
     apiVersion: v2
     appVersion: "2"
-    created: "2024-08-16T12:06:10.478296+02:00"
+    created: "2024-08-18T11:26:11.074102+02:00"
     description: The official Hyperledger Fabric web UI for viewing transactions,
       blocks, and associated data
-    digest: 8947ab0480761d2ef369e6e44f6f55c8491391d75fe63a5e206b72bb7066a1e7
+    digest: 83e6d60924f5ccaedff50d4ae931e0bcf9b483cfd03132a90ed4aad7b023241c
     icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
     keywords:
     - hyperledger
@@ -144,4 +144,28 @@ entries:
     urls:
     - hyperledger-explorer-0.0.1.tgz
     version: 0.0.1
-generated: "2024-08-16T12:06:10.4762+02:00"
+  wireguard-guardian:
+  - annotations:
+      category: VPN
+    apiVersion: v2
+    appVersion: wg-v1.0-coredns-v1.11.1-envoy-v1.31
+    created: "2024-08-18T11:26:11.074325+02:00"
+    description: guardian manages wireguard networks and peers
+    digest: 09938f300be8e9f3d2b0572923cb9477f7992ece7999b20e0fba1726268246a8
+    icon: https://avatars.githubusercontent.com/u/119541358
+    keywords:
+    - wireguard
+    - guardian
+    - vpn
+    - envoy
+    - coredns
+    maintainers:
+    - email: dev@edgeflare.io
+      name: edgeflare.io
+      url: https://github.com/edgeflare/charts
+    name: wireguard-guardian
+    type: application
+    urls:
+    - wireguard-guardian-0.0.1-alpha.tgz
+    version: 0.0.1-alpha
+generated: "2024-08-18T11:26:11.071608+02:00"
