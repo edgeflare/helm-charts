@@ -1,0 +1,140 @@
+# for debugging etc. setup with org1 admin credentials.
+# if needed, replace all appearances of org1 with an appropriate org name
+apiVersion: v1
+kind: Pod
+metadata:
+  name: admin-org1-cli
+  namespace: org1
+spec:
+  containers:
+  - command:
+    - /bin/bash
+    - -c
+    - |
+      while true; do echo $(date); sleep 3600; done
+    env:
+    - name: CHANNEL_ID
+      value: default
+    - name: CC_NAME
+      value: assetcc
+    - name: CC_VERSION
+      value: "1.0"
+    - name: CC_LABEL
+      value: assetcc_1.0
+    - name: CC_ADDRESS
+      value: assetcc.org1:7052
+    - name: CC_LANGUAGE
+      value: golang
+    - name: CC_SIGNATURE_POLICY
+      value: OR('Org1MSP.member', 'Org2MSP.member')
+    - name: CC_SEQUENCE
+      value: "1"
+    - name: CORE_PEER_ADDRESS
+      value: peer0.org1:7051
+    - name: FABRIC_LOGGING_SPEC
+      value: INFO
+    - name: CORE_PEER_LOCALMSPID
+      value: Org1MSP
+    - name: CORE_PEER_MSPCONFIGPATH
+      value: /fabric/admin/msp
+    - name: CORE_PEER_TLS_CERT_FILE
+      value: /fabric/admin/tls/tls.crt
+    - name: CORE_PEER_TLS_ENABLED
+      value: "true"
+    - name: CORE_PEER_TLS_KEY_FILE
+      value: /fabric/admin/tls/tls.key
+    - name: CORE_PEER_TLS_ROOTCERT_FILE
+      value: /fabric/admin/tls/ca.crt
+    - name: ORDERER_TLS_ROOTCERT_FILE
+      value: /fabric/orderer/tlsca.crt
+    - name: GO111MODULE
+      value: "on"
+    - name: GOPATH
+      value: /fabric/chaincode/go
+    - name: GOCACHE
+      value: /fabric/chaincode/.cache
+    - name: GOMODCACHE
+      value: /fabric/chaincode/pkg/mod
+    - name: GOBIN
+      value: /fabric/chaincode/bin
+    image: docker.io/hyperledger/fabric-tools:2.5.4
+    imagePullPolicy: Always
+    name: install-chaincode
+    resources: {}
+    volumeMounts:
+    - mountPath: /fabric/chaincode
+      name: fabric-chaincode
+    - mountPath: /fabric/admin/msp/config.yaml
+      name: peer-config
+      subPath: config.yaml
+    - mountPath: /fabric/admin/tls
+      name: admin-keypair-tls
+    - mountPath: /fabric/admin/msp/cacerts/cacert.pem
+      name: admin-msp-cacerts
+      subPath: cacert.pem
+    - mountPath: /fabric/admin/msp/keystore/key.pem
+      name: admin-msp-keystore
+      subPath: key.pem
+    - mountPath: /fabric/admin/msp/signcerts/cert.pem
+      name: admin-msp-signcerts
+      subPath: cert.pem
+    - mountPath: /fabric/admin/msp/tlscacerts/tlscacert.pem
+      name: admin-msp-tlscacerts
+      subPath: tlscacert.pem
+    - mountPath: /fabric/orderer/tlsca.crt
+      name: orderer-tlscacerts
+      subPath: tlsca.crt
+    workingDir: /fabric/chaincode
+  restartPolicy: OnFailure
+  securityContext:
+    fsGroup: 1000
+    runAsGroup: 1000
+    runAsNonRoot: true
+    runAsUser: 1000
+  volumes:
+  - emptyDir: {}
+    name: fabric-chaincode
+  - configMap:
+      defaultMode: 420
+      name: peer0-config
+    name: peer-config
+  - name: admin-keypair-tls
+    secret:
+      defaultMode: 420
+      secretName: admin-keypair-tls
+  - name: admin-msp-cacerts
+    secret:
+      defaultMode: 420
+      items:
+      - key: ca.crt
+        path: cacert.pem
+      secretName: admin-keypair
+  - name: admin-msp-keystore
+    secret:
+      defaultMode: 420
+      items:
+      - key: tls.key
+        path: key.pem
+      secretName: admin-keypair
+  - name: admin-msp-signcerts
+    secret:
+      defaultMode: 420
+      items:
+      - key: tls.crt
+        path: cert.pem
+      secretName: admin-keypair
+  - name: admin-msp-tlscacerts
+    secret:
+      defaultMode: 420
+      items:
+      - key: ca.crt
+        path: tlscacert.pem
+      secretName: admin-keypair-tls
+  - name: orderer-tlscacerts
+    secret:
+      defaultMode: 420
+      items:
+      - key: ca.crt
+        path: tlsca.crt
+      secretName: tlsca.orderer-certs
+---

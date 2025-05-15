@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: wg-guardian
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  name: wg-guardian
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - name: udp-dns
+    port: 53
+    protocol: UDP
+    targetPort: 53
+  - name: tcp-dns
+    port: 53
+    protocol: TCP
+    targetPort: 53
+  - name: udp-wg
+    port: 51820
+    protocol: UDP
+    targetPort: 51820
+  - name: tcp-postgres
+    port: 5432
+    protocol: TCP
+    targetPort: tcp-postgres
+  - name: http-admin
+    port: 9901
+    protocol: TCP
+    targetPort: http-admin
+  selector:
+    app.kubernetes.io/name: wg-guardian
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: wg-guardian
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  name: wg-guardian-lb
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - name: udp-dns
+    port: 53
+    protocol: UDP
+    targetPort: 53
+  - name: tcp-dns
+    port: 53
+    protocol: TCP
+    targetPort: 53
+  - name: udp-wg
+    port: 51820
+    protocol: UDP
+    targetPort: 51820
+  - name: tcp-postgres
+    port: 5432
+    protocol: TCP
+    targetPort: tcp-postgres
+  - name: http-admin
+    port: 9901
+    protocol: TCP
+    targetPort: http-admin
+  selector:
+    app.kubernetes.io/name: wg-guardian
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  sessionAffinity: None
+  type: LoadBalancer
+---

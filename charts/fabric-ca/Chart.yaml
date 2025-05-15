@@ -1,0 +1,14 @@
+apiVersion: v2
+name: fabric-ca
+description: Fabric CA issues enrollment certificates and TLS certificates for Hyperledger Fabric deployments
+type: application
+version: 0.0.1
+appVersion: 1.5.6
+icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
+keywords: ["hyperledger", "fabric", "fabric-ca", "certificate-authority"]
+annotations:
+  category: Blockchain
+maintainers:
+- name: edgeflare.io
+  email: dev@edgeflare.io
+  url: https://github.com/edgeflare/charts

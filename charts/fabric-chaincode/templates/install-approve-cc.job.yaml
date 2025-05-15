@@ -1,0 +1,260 @@
+{{- range .Values.orgs }}
+{{ $org := .name }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: install-{{ $.Values.cc.name }}-and-approve-in-{{ $.Values.cc.channelId }}-channel
+  namespace: {{ $org }}
+spec:
+  template:
+    spec:
+      serviceAccountName: package-id-cm-creator
+      containers:
+      - args:
+        - |
+          #!/bin/bash
+          
+          set -eo pipefail
+          {{- include "retryFunction" . | nindent 10 }}
+          
+          function getPackageId {
+            local label=$1
+            local output
+            local package_id
+            
+            output=$(peer lifecycle chaincode queryinstalled)
+            package_id=$(echo "$output" | grep "Label: ${label}" | awk -F ', ' '{print $1}' | awk '{print $3}')
+            
+            if [ -z "$package_id" ]; then
+              echo "Package ID for label '${label}' not found."
+              return 1
+            fi
+            echo "$package_id"
+          }
+          
+          echo "Checking if CC_ADDRESS is set"
+          if [[ -n "${CC_ADDRESS}" ]]; then
+            echo "Packaging external chaincode service..."
+            cat <<CONN_EOF > connection.json
+          {
+              "address": "${CC_ADDRESS}",
+              "dial_timeout": "10s",
+              "tls_required": false
+          }
+          CONN_EOF
+            
+            cat <<METADATA_EOF > metadata.json
+          {
+              "type": "external",
+              "label": "${CC_LABEL}"
+          }
+          METADATA_EOF
+            
+            tar cfz code.tar.gz connection.json
+            tar cfz "${CC_LABEL}.tgz" metadata.json code.tar.gz
+            tar -tf "${CC_LABEL}.tgz"
+          else
+            echo "Packaging traditional chaincode..."
+            echo "Downloading chaincode into and installing dependencies..."
+            mkdir -p "${CC_NAME}"
+            echo "Extracting into ${CC_NAME}"
+            tar -C "${CC_NAME}" -xvf "${CC_NAME}.tar.gz"
+          
+            cd "${CC_NAME}"
+            if [[ -f "go.mod" ]]; then
+              echo "Installing dependencies..."
+              go mod tidy
+            fi
+          
+            if [[ -f "package.json" ]]; then
+              echo "Installing dependencies..."
+              npm install
+            fi
+          
+            peer lifecycle chaincode package "${CC_LABEL}.tgz" \
+              --path . --lang "${CC_LANGUAGE}" --label "${CC_LABEL}"
+            cd ..
+          fi
+          
+          for PEER in {{- range .peers }} {{ .name }} {{- end }}; do
+            echo "Installing chaincode on ${PEER} ..."
+            export CORE_PEER_ADDRESS="${PEER}.{{ $org }}:7051"
+            retry 5 2 peer lifecycle chaincode install "${CC_LABEL}.tgz"
+            peer lifecycle chaincode queryinstalled --output json
+          done
+          
+          export PACKAGE_ID=$(retry 5 2 getPackageId "${CC_LABEL}")
+          
+          echo "Package ID: ${PACKAGE_ID}"
+          
+          echo "Approving chaincode for Org1MSP..."
+          retry 5 2 peer lifecycle chaincode approveformyorg --tls true --cafile "${ORDERER_TLS_ROOTCERT_FILE}" \
+            --channelID "${CHANNEL_ID}" --name "${CC_NAME}" --version "${CC_VERSION}" --package-id "${PACKAGE_ID}" \
+            --sequence "${CC_SEQUENCE}" --waitForEvent
+          
+          echo "Querying approved chaincode"
+          retry 5 2 peer lifecycle chaincode queryapproved --channelID "${CHANNEL_ID}" --name "${CC_NAME}" \
+            --sequence "${CC_SEQUENCE}" --tls true --cafile "${ORDERER_TLS_ROOTCERT_FILE}" --output json
+          
+          echo "Checking the commit readiness of the chaincode..."
+          retry 5 2 peer lifecycle chaincode checkcommitreadiness --channelID "${CHANNEL_ID}" --name "${CC_NAME}" \
+            --version "${CC_VERSION}" --tls true --cafile "${ORDERER_TLS_ROOTCERT_FILE}" \
+            --sequence "${CC_SEQUENCE}" --output json
+          
+          echo -n "${PACKAGE_ID}" > /fabric/chaincode/package-id
+          echo "Package ID written to /fabric/chaincode/package-id"
+        command:
+        - /bin/bash
+        - -c
+        env:
+        - name: CHANNEL_ID
+          value: {{ $.Values.cc.channelId }}
+        - name: CC_NAME
+          value: {{ $.Values.cc.name }}
+        - name: CC_VERSION
+          value: {{ $.Values.cc.version | quote }}
+        - name: CC_LABEL
+          value: {{ $.Values.cc.name }}_{{ $.Values.cc.version }}
+        {{- if $.Values.cc.image }}
+        - name: CC_ADDRESS
+          value: {{ $.Values.cc.name }}.{{ $org }}:7052
+        {{- end }}
+        {{- if $.Values.cc.srcUrl }}
+        - name: CC_SRC_URL
+          value: {{ $.Values.cc.srcUrl }}
+        {{- end }}
+        - name: CC_LANGUAGE
+          value: {{ $.Values.cc.language }}
+        - name: CC_SIGNATURE_POLICY
+          value: {{ $.Values.cc.policy | quote }}
+        - name: CC_SEQUENCE
+          value: {{ $.Values.cc.sequence | quote }}
+        - name: CORE_PEER_ADDRESS
+          value: {{ (index .peers 0).name }}.{{ $org }}:7051
+        - name: FABRIC_LOGGING_SPEC
+          value: INFO
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ include "capitalizeFirst" $org }}MSP
+        - name: CORE_PEER_MSPCONFIGPATH
+          value: /fabric/admin/msp
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: /fabric/admin/tls/tls.crt
+        - name: CORE_PEER_TLS_ENABLED
+          value: "true"
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: /fabric/admin/tls/tls.key
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /fabric/admin/tls/ca.crt
+        - name: ORDERER_TLS_ROOTCERT_FILE
+          value: /fabric/orderer/tlsca.crt
+        - name: GO111MODULE
+          value: "on"
+        - name: GOPATH
+          value: /fabric/chaincode/go
+        - name: GOCACHE
+          value: /fabric/chaincode/.cache
+        - name: GOMODCACHE
+          value: /fabric/chaincode/pkg/mod
+        - name: GOBIN
+          value: /fabric/chaincode/bin
+        image: docker.io/hyperledger/fabric-tools:2.5.4
+        imagePullPolicy: Always
+        name: install-chaincode
+        volumeMounts:
+        - mountPath: /fabric/chaincode
+          name: fabric-chaincode
+        - mountPath: /fabric/admin/msp/config.yaml
+          name: peer-config
+          subPath: config.yaml
+        - mountPath: /fabric/admin/tls
+          name: admin-keypair-tls
+        - mountPath: /fabric/admin/msp/cacerts/cacert.pem
+          name: admin-msp-cacerts
+          subPath: cacert.pem
+        - mountPath: /fabric/admin/msp/keystore/key.pem
+          name: admin-msp-keystore
+          subPath: key.pem
+        - mountPath: /fabric/admin/msp/signcerts/cert.pem
+          name: admin-msp-signcerts
+          subPath: cert.pem
+        - mountPath: /fabric/admin/msp/tlscacerts/tlscacert.pem
+          name: admin-msp-tlscacerts
+          subPath: tlscacert.pem
+        - mountPath: /fabric/orderer/tlsca.crt
+          name: orderer-tlscacerts
+          subPath: tlsca.crt
+        workingDir: /fabric/chaincode
+      - name: create-package-id-configmap
+        image: docker.io/bitnami/kubectl:latest
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          timeout=300
+          echo "Waiting upto $timeout seconds for /fabric/chaincode/package-id to be available..."
+          while [ ! -f /fabric/chaincode/package-id ]; do
+            sleep 1
+            timeout=$((timeout - 1))
+            if [ $timeout -eq 0 ]; then
+              echo "Timeout waiting for file. Exiting."
+              exit 1
+            fi
+          done
+          echo "File found. Creating configmap of PACKAGE_ID for chaincode commit Job and CCAAS deployment..."
+          
+          kubectl create configmap {{ $.Values.cc.name }}-package-id --from-file=package-id=/fabric/chaincode/package-id -n {{ $org }}
+          echo "Configmap {{ $.Values.cc.name }}-package-id created."
+        volumeMounts:
+        - mountPath: /fabric/chaincode
+          name: fabric-chaincode
+        workingDir: /fabric/chaincode
+      restartPolicy: OnFailure
+      securityContext:
+        {{- toYaml $.Values.securityContext | nindent 8 }}
+      volumes:
+      - emptyDir: {}
+        name: fabric-chaincode
+      - configMap:
+          defaultMode: 420
+          name: {{ (index .peers 0).name }}-config
+        name: peer-config
+      - name: admin-keypair-tls
+        secret:
+          defaultMode: 420
+          secretName: admin-keypair-tls
+      - name: admin-msp-cacerts
+        secret:
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: cacert.pem
+          secretName: admin-keypair
+      - name: admin-msp-keystore
+        secret:
+          defaultMode: 420
+          items:
+          - key: tls.key
+            path: key.pem
+          secretName: admin-keypair
+      - name: admin-msp-signcerts
+        secret:
+          defaultMode: 420
+          items:
+          - key: tls.crt
+            path: cert.pem
+          secretName: admin-keypair
+      - name: admin-msp-tlscacerts
+        secret:
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: tlscacert.pem
+          secretName: admin-keypair-tls
+      - name: orderer-tlscacerts
+        secret:
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: tlsca.crt
+          secretName: tlsca.orderer-certs
+---
+{{- end }}

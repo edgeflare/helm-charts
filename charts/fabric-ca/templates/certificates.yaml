@@ -1,0 +1,97 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ .Values.caOrg }}-ca-issuer
+  namespace: {{ .Values.caOrg }}
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ca.{{ .Values.caOrg }}
+  namespace: {{ .Values.caOrg }}
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  isCA: true
+  usages:
+  - server auth
+  - client auth
+  - crl sign
+  - digital signature
+  - key encipherment
+  - cert sign
+  duration: 87600h # 10y
+  renewBefore: 2160h # 90d
+  commonName: ca.{{ .Values.caOrg }}
+  dnsNames:
+  - ca.{{ .Values.caOrg }}
+  - ca.{{ .Values.caOrg }}.svc
+  - ca.{{ .Values.caOrg }}.svc.{{ .Values.network.clusterDomain }}
+  - ca.{{ .Values.caOrg }}.{{ .Values.network.publicDomain }}
+  - ca-{{ .Values.caOrg }}.{{ .Values.network.publicDomain }}
+  issuerRef:
+    name: {{ .Values.caOrg }}-ca-issuer
+    kind: Issuer
+    group: cert-manager.io
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  secretName: ca.{{ .Values.caOrg }}-keypair
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ .Values.caOrg }}-issuer
+  namespace: {{ .Values.caOrg }}
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  ca:
+    secretName: ca.{{ .Values.caOrg }}-keypair
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: tlsca.{{ .Values.caOrg }}
+  namespace: {{ .Values.caOrg }}
+spec:
+  isCA: true
+  usages:
+  - server auth
+  - client auth
+  - crl sign
+  - digital signature
+  - key encipherment
+  - cert sign
+  duration: 87600h # 10y
+  renewBefore: 2160h # 90d
+  commonName: tlsca.{{ .Values.caOrg }}
+  dnsNames:
+  - ca.{{ .Values.caOrg }}
+  - ca.{{ .Values.caOrg }}.svc
+  - ca.{{ .Values.caOrg }}.svc.{{ $.Values.network.clusterDomain }}
+  - ca.{{ .Values.caOrg }}.{{ $.Values.network.publicDomain }}
+  - ca-{{ .Values.caOrg }}.{{ $.Values.network.publicDomain }}
+  - tlsca.{{ .Values.caOrg }}
+  issuerRef:
+    name: {{ .Values.caOrg }}-ca-issuer
+    kind: Issuer
+    group: cert-manager.io
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  secretName: tlsca.{{ .Values.caOrg }}-keypair
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ .Values.caOrg }}-tls-issuer
+  namespace: {{ .Values.caOrg }}
+spec:
+  ca:
+    secretName: tlsca.{{ .Values.caOrg }}-keypair
+---

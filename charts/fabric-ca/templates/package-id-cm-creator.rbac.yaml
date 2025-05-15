@@ -1,0 +1,40 @@
+# not specific to CA.
+# charts/fabric-chaincode/templates/install-approve-cc.job.yaml
+# creates a configmap with the package-id of the chaincode
+# for the commit-cc job and ccaaas deployment to use.
+# install-approve-cc job uses this ServiceAccount and RoleBinding
+{{ if ne .Values.caOrg "orderer" }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: package-id-cm-creator
+  namespace: {{ .Values.caOrg }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: package-id-cm-creator
+  namespace: {{ .Values.caOrg }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: package-id-cm-creator
+  namespace: {{ .Values.caOrg }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: package-id-cm-creator
+subjects:
+- kind: ServiceAccount
+  name: package-id-cm-creator
+  namespace: {{ .Values.caOrg }}
+---
+{{- end }}

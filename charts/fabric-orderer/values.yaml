@@ -1,0 +1,36 @@
+orderer:
+  name: orderer1
+
+network:
+  clusterDomain: cluster.local # reachable at orderer1.orderer, orderer1.orderer.svc, orderer1.orderer.svc.cluster.local
+  publicDomain: example.test   # reachable at orderer1.orderer.example.test, orderer1-orderer.example.test
+
+image:
+  repository: docker.io/hyperledger/fabric-orderer
+  pullPolicy: IfNotPresent
+  tag: 2.5.4
+
+pvc:
+  enabled: true # requires dynamic PV provisioning
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 8Gi
+    # storageClassName: "" # leave out to use default storage class
+
+tlsRoute:
+  enabled: true
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: istio-dev
+    namespace: istio-system
+    sectionName: tls-passthrough-443-fabnet
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000

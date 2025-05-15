@@ -1,0 +1,51 @@
+couchdb:
+  enabled: true
+  clusterSize: 1 # number of couchdb pods to deploy
+  couchdbConfig:
+    couchdb:
+      uuid: 2f278208-fb60-49d5-a3a7-698c50e72f5c # a uuid is required. supply your own if needed
+  # couchdbUsername: ""   # auto-generated. supply your own if needed
+  # couchdbPassword: ""   # auto-generated. supply your own if needed
+  # more config options at https://github.com/apache/couchdb-helm/blob/main/couchdb/values.yaml
+  persistentVolume:
+    enabled: true
+    size: 8Gi
+
+# Fabric Peer
+image:
+  repository: docker.io/hyperledger/fabric-peer
+  pullPolicy: IfNotPresent
+  tag: 2.5.4
+
+peer:
+  name: peer0
+  org: org1
+
+network:
+  clusterDomain: cluster.local # peer0.org1.svc.cluster.local, peer1.org2.svc.cluster.local etc
+  publicDomain: example.test   # publicly reachable at peer0.org1.example.test, peer0-org1.example.test
+
+pvc:
+  enabled: true # requires dynamic PV provisioning
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 8Gi
+    # storageClassName: "" # leave out to use default storage class
+
+tlsRoute:
+  enabled: true
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: istio-dev
+    namespace: istio-system
+    sectionName: tls-passthrough-443-fabnet
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000

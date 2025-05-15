@@ -1,0 +1,73 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.orderer.name }}.orderer
+  namespace: orderer
+  labels:
+    app.kubernetes.io/name: fabric-orderer
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  subject:
+    organizations:
+    - orderer
+    organizationalUnits:
+    - orderer
+  usages:
+  - server auth
+  - client auth
+  - digital signature
+  - key encipherment
+  duration: 87600h # 10y
+  renewBefore: 2160h # 90d
+  commonName: {{ .Values.orderer.name }}.orderer
+  dnsNames:
+  - {{ .Values.orderer.name }}.orderer
+  - {{ .Values.orderer.name }}.orderer.svc
+  - {{ .Values.orderer.name }}.orderer.svc.{{ .Values.network.clusterDomain }}
+  - {{ .Values.orderer.name }}.orderer.{{ .Values.network.publicDomain }}
+  - {{ .Values.orderer.name }}-orderer.{{ .Values.network.publicDomain }}
+  ipAddresses:
+  - 127.0.0.1
+  issuerRef:
+    group: cert-manager.io
+    kind: Issuer
+    name: orderer-issuer
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  secretName: {{ .Values.orderer.name }}-keypair
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.orderer.name }}-tls
+  namespace: orderer
+  labels:
+    app.kubernetes.io/name: fabric-orderer
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  usages:
+  - server auth
+  - client auth
+  - digital signature
+  - key encipherment
+  duration: 87600h # 10y
+  renewBefore: 2160h # 90d
+  commonName: {{ .Values.orderer.name }}.orderer
+  dnsNames:
+  - {{ .Values.orderer.name }}.orderer
+  - {{ .Values.orderer.name }}.orderer.svc
+  - {{ .Values.orderer.name }}.orderer.svc.{{ .Values.network.clusterDomain }}
+  - {{ .Values.orderer.name }}.orderer.{{ .Values.network.publicDomain }}
+  - {{ .Values.orderer.name }}-orderer.{{ .Values.network.publicDomain }}
+  ipAddresses:
+  - 127.0.0.1
+  issuerRef:
+    group: cert-manager.io
+    kind: Issuer
+    name: orderer-tls-issuer
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  secretName: {{ .Values.orderer.name }}-keypair-tls
+---

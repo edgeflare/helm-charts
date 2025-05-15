@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: explorer-config
+  namespace: {{ .Values.org }}
+data:
+  config.json: |
+    {
+      "network-configs": {
+        "test-network": {
+          "name": "Test Network",
+          "profile": "/fabric/{{ .Values.org }}/explorer/connection-profile.json"
+        }
+      },
+      "license": "Apache-2.0"
+    }
+---

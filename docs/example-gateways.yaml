@@ -1,0 +1,53 @@
+# istio
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: istio
+spec:
+  controllerName: istio.io/gateway-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: istio-default # or existing gateway name
+  namespace: istio-system
+spec:
+  gatewayClassName: istio
+  listeners:
+  - allowedRoutes:
+      namespaces:
+        from: All
+    hostname: '*.fabnet.edgeflare.dev' # update accordingly
+    name: tls-passthrough-443-fabnet
+    port: 443
+    protocol: TLS
+    tls:
+      mode: Passthrough
+---
+# traefik
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: traefik
+spec:
+  controllerName: traefik.io/gateway-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: traefik-fabnet # or existing gateway name
+  namespace: traefik
+spec:
+  gatewayClassName: traefik
+  listeners:
+  - allowedRoutes:
+      namespaces:
+        from: All
+    hostname: '*.fabnet.edgeflare.dev' # update accordingly
+    name: tls-passthrough-443-fabnet
+    port: 8443 # containerPort
+    protocol: TLS
+    tls:
+      mode: Passthrough
+---
+

@@ -1,0 +1,125 @@
+{{- range .Values.orgs }}
+{{ $org := .name }}
+{{- range .peers }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ .name }}-join-{{ $.Values.channel.id }}-channel"
+  namespace: {{ $org }}
+spec:
+  template:
+    spec:
+      securityContext:
+        {{- toYaml $.Values.securityContext | nindent 8 }}
+      volumes:
+      - name: channel-artifacts
+        emptyDir: {}
+      - name: {{ .name }}-config
+        configMap:
+          name: {{ .name }}-config
+      - name: admin-keypair-tls
+        secret:
+          secretName: admin-keypair-tls
+          defaultMode: 420
+      - name: admin-msp-cacerts
+        secret:
+          secretName: admin-keypair
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: cacert.pem
+      - name: admin-msp-keystore
+        secret:
+          secretName: admin-keypair
+          defaultMode: 420
+          items:
+          - key: tls.key
+            path: key.pem
+      - name: admin-msp-signcerts
+        secret:
+          secretName: admin-keypair
+          defaultMode: 420
+          items:
+          - key: tls.crt
+            path: cert.pem
+      - name: admin-msp-tlscacerts
+        secret:
+          secretName: admin-keypair-tls
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: tlscacert.pem
+      - name: orderer-tlscacerts
+        secret:
+          secretName: tlsca.orderer-certs
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: tlsca.crt
+      containers:
+      - name: peer-channel-join
+        image: docker.io/hyperledger/fabric-peer
+        env:
+        - name: CHANNEL_ID
+          value: {{ $.Values.channel.id }}
+        - name: CORE_PEER_ADDRESS
+          value: "{{ .name }}.{{ $org }}:7051"
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ include "capitalizeFirst" $org }}MSP
+        - name: CORE_PEER_MSPCONFIGPATH
+          value: /fabric/admin/msp
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: /fabric/admin/tls/tls.crt
+        - name: CORE_PEER_TLS_ENABLED
+          value: "true"
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: /fabric/admin/tls/tls.key
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /fabric/admin/tls/ca.crt
+        - name: ORDERER_TLS_ROOTCERT_FILE
+          value: /fabric/orderer/tlsca.crt
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          set -euo pipefail
+          retries=5
+          for ((i=0; i<retries; i++)); do
+            peer channel fetch newest /fabric/channel-artifacts/${CHANNEL_ID}.block --channelID=${CHANNEL_ID} --tls --cafile ${ORDERER_TLS_ROOTCERT_FILE} --orderer {{ (index $.Values.orderers 0).name }}.orderer:7050 && break
+            echo "Attempt $(($i+1)) of $retries failed! Trying again in 10 seconds..."
+            sleep 10
+          done
+          if [ $i -eq $retries ]; then
+            echo "Failed to fetch channel block after $retries attempts."
+            exit 1
+          fi
+
+          echo "Successfully fetched the block. Joining the peer to the channel..."
+          peer channel join -b /fabric/channel-artifacts/${CHANNEL_ID}.block --tls --cafile ${ORDERER_TLS_ROOTCERT_FILE}
+        volumeMounts:
+        - mountPath: /fabric/channel-artifacts
+          name: channel-artifacts
+        - mountPath: /fabric/admin/msp/config.yaml
+          name: {{ .name }}-config
+          subPath: config.yaml
+        - mountPath: /fabric/admin/tls
+          name: admin-keypair-tls
+        - mountPath: /fabric/admin/msp/cacerts/cacert.pem
+          name: admin-msp-cacerts
+          subPath: cacert.pem
+        - mountPath: /fabric/admin/msp/keystore/key.pem
+          name: admin-msp-keystore
+          subPath: key.pem
+        - mountPath: /fabric/admin/msp/signcerts/cert.pem
+          name: admin-msp-signcerts
+          subPath: cert.pem
+        - mountPath: /fabric/admin/msp/tlscacerts/tlscacert.pem
+          name: admin-msp-tlscacerts
+          subPath: tlscacert.pem
+        - mountPath: /fabric/orderer/tlsca.crt
+          name: orderer-tlscacerts
+          subPath: tlsca.crt
+        workingDir: /fabric
+      restartPolicy: OnFailure
+---
+{{- end }}
+{{- end }}

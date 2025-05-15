@@ -1,0 +1,153 @@
+# example envoy config with hostname based HTTP and HTTPS routing
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-config
+  namespace: {{ .Release.Namespace }}
+data:
+  envoy.yaml: |
+{{- if and (hasKey .Values.envoy "config") (not (empty .Values.envoy.config)) }}
+{{ .Values.envoy.config | indent 4 }}
+{{- else }}
+    static_resources:
+      listeners:
+      - name: listener_http
+        address:
+          socket_address:
+            address: 0.0.0.0
+            port_value: 80
+        filter_chains:
+        - filters:
+          - name: envoy.filters.network.http_connection_manager
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+              stat_prefix: ingress_http
+              codec_type: AUTO
+              route_config:
+                name: local_route
+                virtual_hosts:
+                - name: app1_service
+                  domains: ["app1.example.com"]
+                  routes:
+                  - match:
+                      prefix: "/"
+                    route:
+                      cluster: app1_cluster
+                - name: app2_service
+                  domains: ["app2.example.com"]
+                  routes:
+                  - match:
+                      prefix: "/"
+                    route:
+                      cluster: app2_cluster
+                - name: default_service
+                  domains: ["*"]
+                  routes:
+                  - match:
+                      prefix: "/"
+                    route:
+                      cluster: default_cluster
+              http_filters:
+              - name: envoy.filters.http.router
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+    
+      - name: listener_https
+        address:
+          socket_address:
+            address: 0.0.0.0
+            port_value: 443
+        filter_chains:
+        - filters:
+          - name: envoy.filters.network.http_connection_manager
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+              stat_prefix: ingress_https
+              codec_type: AUTO
+              route_config:
+                name: local_route_https
+                virtual_hosts:
+                - name: app1_service_https
+                  domains: ["app1.example.com"]
+                  routes:
+                  - match:
+                      prefix: "/"
+                    route:
+                      cluster: app1_cluster
+                - name: app2_service_https
+                  domains: ["app2.example.com"]
+                  routes:
+                  - match:
+                      prefix: "/"
+                    route:
+                      cluster: app2_cluster
+                - name: default_service_https
+                  domains: ["*"]
+                  routes:
+                  - match:
+                      prefix: "/"
+                    route:
+                      cluster: default_cluster
+              http_filters:
+              - name: envoy.filters.http.router
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+          transport_socket:
+            name: envoy.transport_sockets.tls
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+              common_tls_context:
+                tls_certificates:
+                - certificate_chain:
+                    filename: "/etc/envoy/tls/tls.crt"
+                  private_key:
+                    filename: "/etc/envoy/tls/tls.key"
+    
+      clusters:
+      - name: app1_cluster
+        connect_timeout: 0.25s
+        type: STRICT_DNS
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: app1_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: app1_service
+                    port_value: 80
+      - name: app2_cluster
+        connect_timeout: 0.25s
+        type: STRICT_DNS
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: app2_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: app2_service
+                    port_value: 80
+      - name: default_cluster
+        connect_timeout: 0.25s
+        type: STRICT_DNS
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: default_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: default_service
+                    port_value: 80
+    
+    admin:
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 9901
+{{- end }}
+---

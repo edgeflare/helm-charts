@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.orderer.name }}
+  namespace: orderer
+  labels:
+    app.kubernetes.io/name: fabric-orderer
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  ports:
+  - name: grpc
+    port: 7050
+    protocol: TCP
+    targetPort: 7050
+  - name: http-admin
+    port: 9443
+    protocol: TCP
+    targetPort: 9443
+  - name: http-operations
+    port: 8443
+    protocol: TCP
+    targetPort: 8443
+  selector:
+    app.kubernetes.io/name: fabric-orderer
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  type: ClusterIP
+---

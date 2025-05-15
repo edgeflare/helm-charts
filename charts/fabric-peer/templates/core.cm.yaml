@@ -1,0 +1,236 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.peer.name }}-core
+  namespace: {{ .Values.peer.org }}
+  labels:
+    app.kubernetes.io/name: fabric-peer
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  core.yaml: |-
+    chaincode:
+      builder: $(DOCKER_NS)/fabric-ccenv:$(TWO_DIGIT_VERSION)
+      executetimeout: 30s
+      externalbuilders:
+      - name: external
+        path: /opt/hyperledger/ccaas_builder
+        propagateEnvironment:
+        - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
+        - GOPROXY
+      golang:
+        dynamiclink: false
+        runtime: $(DOCKER_NS)/fabric-baseos:$(TWO_DIGIT_VERSION)
+      installtimeout: 300s
+      java:
+        runtime: $(DOCKER_NS)/fabric-javaenv:$(TWO_DIGIT_VERSION)
+      keepalive: 0
+      logging:
+        format: '%{color}%{time:2006-01-02 15:04:05.000 MST} [%{module}] %{shortfunc}
+          -> %{level:.4s} %{id:03x}%{color:reset} %{message}'
+        level: info
+        shim: warning
+      mode: net
+      node:
+        runtime: $(DOCKER_NS)/fabric-nodeenv:$(TWO_DIGIT_VERSION)
+      pull: false
+      startuptimeout: 300s
+      system:
+        _lifecycle: enable
+        cscc: enable
+        lscc: enable
+        qscc: enable
+    ledger:
+      history:
+        enablehistorydatabase: true
+      pvtdatastore:
+        collelgprocdbbatchesinterval: 1000
+        collelgprocmaxdbbatchsize: 5000
+        deprioritizeddatareconcilerinterval: 60m
+        purgedkeyauditlogging: true
+        purgeinterval: 100
+      snapshots:
+        rootdir: /var/hyperledger/production/snapshots
+      state:
+        couchdbconfig:
+          cachesize: 64
+          couchdbaddress: 0.0.0.0:5984
+          createglobalchangesdb: false
+          internalquerylimit: 1000
+          maxbatchupdatesize: 1000
+          maxretries: 3
+          maxretriesonstartup: 10
+          password: couchdb
+          requesttimeout: 35s
+          username: couchdb
+        statedatabase: CouchDB
+        totalquerylimit: 100000
+    logging_level: ""
+    metrics:
+      provider: disabled
+      statsd:
+        address: 127.0.0.1:8125
+        network: udp
+        writeinterval: 10s
+    operations:
+      listenaddress: 127.0.0.1:9443
+      tls:
+        clientauthrequired: false
+        clientrootcas:
+          files: []
+        enabled: false
+    peer:
+      address: 0.0.0.0:7051
+      addressautodetect: "true"
+      authentication:
+        timewindow: 15m
+      bccsp:
+        default: SW
+        sw:
+          hash: SHA2
+          security: 256
+      client:
+        conntimeout: 3s
+      deliveryclient:
+        blockgossipenabled: true
+        conntimeout: 3s
+        reconnectbackoffthreshold: 3600s
+        reconnecttotaltimethreshold: 3600s
+      discovery:
+        authcacheenabled: true
+        authcachemaxsize: 1000
+        authcachepurgeretentionratio: 0.75
+        enabled: true
+        orgmembersallowedaccess: false
+      filesystempath: /var/hyperledger/production
+      gateway:
+        broadcasttimeout: 30s
+        dialtimeout: 2m
+        enabled: true
+        endorsementtimeout: 30s
+      gossip:
+        aliveexpirationtimeout: 25s
+        alivetimeinterval: 5s
+        bootstrap: peer0.org1:7051
+        conntimeout: 2s
+        dialtimeout: 3s
+        digestwaittime: 1s
+        election:
+          leaderalivethreshold: 10s
+          leaderelectionduration: 5s
+          membershipsampleinterval: 1s
+          startupgraceperiod: 15s
+        externalendpoint: peer0.org1:7051
+        maxblockcounttostore: 10
+        maxconnectionattempts: 120
+        maxpropagationburstlatency: 10ms
+        maxpropagationburstsize: 10
+        membershiptrackerinterval: 5s
+        msgexpirationfactor: 20
+        orgleader: "false"
+        propagateiterations: 1
+        propagatepeernum: 3
+        publishcertperiod: 10s
+        publishstateinfointerval: 4s
+        pullinterval: 4s
+        pullpeernum: 3
+        pvtdata:
+          btlpullmargin: 10
+          implicitcollectiondisseminationpolicy:
+            maxpeercount: 1
+            requiredpeercount: 0
+          pullretrythreshold: 60s
+          pushacktimeout: 3s
+          reconcilebatchsize: 10
+          reconcilesleepinterval: 1m
+          reconciliationenabled: true
+          skippullinginvalidtransactionsduringcommit: false
+          transientstoremaxblockretention: 1000
+        reconnectinterval: 25s
+        recvbuffsize: 20
+        requeststateinfointerval: 4s
+        requestwaittime: 1500ms
+        responsewaittime: 2s
+        sendbuffsize: 200
+        skipblockverification: false
+        state:
+          batchsize: 10
+          blockbuffersize: 20
+          checkinterval: 10s
+          enabled: false
+          maxretries: 3
+          responsetimeout: 3s
+        useleaderelection: "true"
+      handlers:
+        authfilters:
+        - name: DefaultAuth
+        - name: ExpirationCheck
+        decorators:
+        - name: DefaultDecorator
+        endorsers:
+          escc:
+            name: DefaultEndorsement
+        validators:
+          vscc:
+            name: DefaultValidation
+      id: peer0
+      keepalive:
+        client:
+          interval: 60s
+          timeout: 20s
+        deliveryclient:
+          interval: 60s
+          timeout: 20s
+        interval: 7200s
+        mininterval: 60s
+        timeout: 20s
+      limits:
+        concurrency:
+          deliverservice: 2500
+          endorserservice: 2500
+          gatewayservice: 500
+      listenaddress: 0.0.0.0:7051
+      localmspid: Org1MSP
+      localmsptype: bccsp
+      maxrecvmsgsize: 104857600
+      maxsendmsgsize: 104857600
+      mspconfigpath: /fabric/peer/msp
+      networkid: fabnet
+      profile:
+        enabled: "true"
+        listenaddress: 0.0.0.0:6060
+      tls:
+        cert:
+          file: /fabric/peer/tls/tls.crt
+        clientauthrequired: "false"
+        clientcert:
+          file: /fabric/peer/tls/tls.crt
+        clientkey:
+          file: /fabric/peer/tls/tls.key
+        clientrootcas:
+          files: /fabric/peer/tls/ca.crt
+        enabled: "true"
+        key:
+          file: /fabric/peer/tls/tls.key
+        rootcert:
+          file: /fabric/peer/tls/ca.crt
+    vm:
+      docker:
+        attachstdout: false
+        hostconfig:
+          logconfig:
+            config:
+              max-file: "5"
+              max-size: 50m
+            type: json-file
+          memory: 2147483648
+          networkmode: host
+        tls:
+          ca:
+            file: docker/ca.crt
+          cert:
+            file: docker/tls.crt
+          enabled: false
+          key:
+            file: docker/tls.key
+      endpoint: unix:///var/run/docker
+---

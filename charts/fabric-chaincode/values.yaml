@@ -1,0 +1,38 @@
+cc:
+  channelId: default
+  name: assetcc
+  version: "1.0"
+  # srcUrl: "github.com/edgeflare/fabric-oidc-proxy/example-ccaas"
+  image: docker.io/edgeflare/fabric-ccaas-example:asset_cc
+  language: golang
+  policy: "OR('Org1MSP.member', 'Org2MSP.member')"
+  sequence: 1
+  initRequired: false
+  collectionsConfig: ""
+  replicas: # number of ccaas pods. default is number of peers in the org. adjust as needed
+
+orgs:
+- name: org1
+  peers:
+  - name: peer0
+  - name: peer1
+- name: org2
+  peers:
+  - name: peer0
+  - name: peer1
+
+image:
+  repository: docker.io/hyperledger/fabric-tools
+  pullPolicy: IfNotPresent
+  tag: "2.5.4"
+
+# imagePullSecrets:
+# - name: ghcr-io
+# nameOverride: ""
+# fullnameOverride: ""
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000

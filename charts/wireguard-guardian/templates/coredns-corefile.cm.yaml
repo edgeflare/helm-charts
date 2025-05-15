@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-corefile
+  namespace: {{ .Release.Namespace }}
+data:
+  Corefile: |
+{{- if and (hasKey .Values.coredns "corefile") (not (empty .Values.coredns.corefile)) }}
+{{ .Values.coredns.corefile | indent 4 }}
+{{- else }}
+    .:53 {
+        errors
+        health
+        ready
+        forward . 10.43.0.10 1.1.1.1 8.8.8.8 9.9.9.9
+        cache 30
+        loop
+        reload
+        loadbalance
+    }
+{{- end }}
+---

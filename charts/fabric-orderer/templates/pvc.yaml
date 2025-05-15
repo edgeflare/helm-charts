@@ -1,0 +1,13 @@
+{{- if eq .Values.pvc.enabled true }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.orderer.name }}-data
+  namespace: orderer
+  labels:
+    app.kubernetes.io/name: fabric-orderer
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+{{- toYaml .Values.pvc.spec | nindent 2 }}
+---
+{{- end }}

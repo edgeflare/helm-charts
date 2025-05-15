@@ -1,0 +1,12 @@
+{{- if eq .Values.pvc.enabled true }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ca-data
+  namespace: {{ .Values.caOrg }}
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+{{- toYaml .Values.pvc.spec | nindent 2 }}
+---
+{{- end }}

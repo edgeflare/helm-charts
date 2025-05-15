@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.peer.name }}-env-vars
+  namespace: {{ .Values.peer.org }}
+  labels:
+    app.kubernetes.io/name: fabric-peer
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  CORE_LEDGER_STATE_STATEDATABASE: CouchDB
+  CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS: {{ .Release.Name }}-couchdb:5984
+  # CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD: couchdb
+  # CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME: couchdb
+  FABRIC_LOGGING_SPEC: INFO
+  CORE_PEER_ADDRESSAUTODETECT: "true"
+  CORE_PEER_GOSSIP_BOOTSTRAP: {{ .Values.peer.name }}.{{ .Values.peer.org }}:7051
+  CORE_PEER_GOSSIP_EXTERNALENDPOINT: {{ .Values.peer.name }}.{{ .Values.peer.org }}:7051
+  CORE_PEER_GOSSIP_ORGLEADER: "false"
+  CORE_PEER_GOSSIP_USELEADERELECTION: "true"
+  CORE_PEER_ID: {{ .Values.peer.name }}
+  CORE_PEER_LISTENADDRESS: 0.0.0.0:7051
+  CORE_PEER_ADDRESS: {{ .Values.peer.name }}.{{ .Values.peer.org }}:7051
+  CORE_PEER_LOCALMSPID: {{ include "capitalizeFirst" .Values.peer.org }}MSP
+  FABRIC_CFG_PATH: /fabric/peer
+  CORE_PEER_PROFILE_ENABLED: "true"
+  CORE_PEER_TLS_CERT_FILE: /fabric/peer/tls/tls.crt
+  CORE_PEER_TLS_CLIENTAUTHREQUIRED: "false"
+  CORE_PEER_TLS_CLIENTCERT_FILE: /fabric/peer/tls/tls.crt
+  CORE_PEER_TLS_CLIENTKEY_FILE: /fabric/peer/tls/tls.key
+  CORE_PEER_TLS_CLIENTROOTCAS_FILES: /fabric/peer/tls/ca.crt
+  CORE_PEER_TLS_ENABLED: "true"
+  CORE_PEER_TLS_KEY_FILE: /fabric/peer/tls/tls.key
+  CORE_PEER_TLS_ROOTCERT_FILE: /fabric/peer/tls/ca.crt
+  CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE: bridge
+  CORE_VM_ENDPOINT: unix:///run/docker.sock
+  GODEBUG: netdns=go
+  ORDERER_TLS_ROOTCERT_FILE: /fabric/orderer/tls/ca.crt
+  # CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG: {"peername":"peer1org1"}
+---

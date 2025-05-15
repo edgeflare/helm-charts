@@ -1,0 +1,77 @@
+wireguard:
+  image: docker.io/edgeflare/wireguard
+  tag: nonroot # or latest
+  wgConf: |
+    [Interface]
+    PrivateKey = MAcKuLFHLDnwRddk54TCOZgBZtQ+liDYgA4ARUtktnA=
+    ListenPort = 51820
+    Address = 10.0.0.1/24
+    DNS = 10.0.0.1, 10.43.0.10, 1.1.1.1, 8.8.8.8, 9.9.9.9
+    MTU = 1420
+    
+    [Peer]
+    PublicKey = 52KSeddkDYrCdYGdKuV6y3Q6Zv6geFpvwv3xvLuWQ24=
+    AllowedIPs = 10.0.0.2/32
+    # Endpoint = 0.0.0.0:51820 # peer's public IP
+    PersistentKeepalive = 25
+    
+    [Peer]
+    PublicKey = qSdIrnWCNwa0pYVFfSNGe1clzl0qXEM15ZEQBt3PWTw=
+    AllowedIPs = 10.0.0.3/32
+    # Endpoint = 0.0.0.0:51820 # peer's public IP
+    PersistentKeepalive = 25
+coredns:
+  image: docker.io/coredns/coredns
+  tag: 1.11.1
+  corefile: |
+    .:53 {
+        errors
+        health
+        ready
+        forward . 10.43.0.10 1.1.1.1 8.8.8.8 9.9.9.9
+        cache 30
+        loop
+        reload
+        loadbalance
+    }
+envoy:
+  image: docker.io/envoyproxy/envoy-contrib
+  tag: v1.31-latest
+  config: "" # leave empty to use default
+guardian:
+  image: docker.io/edgeflare/guardian
+  tag: latest
+
+domains:
+- example.test
+- example.vpn
+
+## ==== Pod spec ====
+securityContext:
+  sysctls:
+  - name: net.ipv4.ip_forward
+    value: "1"
+  - name: net.ipv6.conf.all.forwarding
+    value: "1"
+  - name: net.ipv4.conf.all.src_valid_mark
+    value: "1"
+
+# affinity:
+#   nodeAffinity:
+#     requiredDuringSchedulingIgnoredDuringExecution:
+#       nodeSelectorTerms:
+#       - matchExpressions:
+#         - key: cloud.google.com/gke-nodepool
+#           operator: In
+#           values:
+#           - n2d-standard-4
+#         - key: sandbox.gke.io/runtime
+#           operator: In
+#           values:
+#           - gvisor
+
+# tolerations:
+# - effect: NoSchedule
+#   key: sandbox.gke.io/runtime
+#   operator: Equal
+#   value: gvisor

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: wireguard-guardian
+description: guardian manages wireguard networks and peers
+type: application
+version: 0.0.1-alpha
+appVersion: wg-v1.0-coredns-v1.11.1-envoy-v1.31
+icon: https://avatars.githubusercontent.com/u/119541358
+keywords: [wireguard, guardian, vpn, envoy, coredns]
+annotations:
+  category: VPN
+maintainers:
+- name: edgeflare.io
+  email: dev@edgeflare.io
+  url: https://github.com/edgeflare/charts
+---
