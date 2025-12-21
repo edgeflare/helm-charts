@@ -1,0 +1,84 @@
+# helm -n dev upgrade --install cdb1 .
+# helm -n dev uninstall cdb1 && kubectl -n dev delete $(kubectl -n dev get pvc -l app.kubernetes.io/instance=cdb1 -o name)
+# 
+cluster:
+  size: 3
+  autoSetup: true
+  existingEtcSecretName: ""
+
+admin:
+  user: admin
+  password: ""
+  existingSecretName: ""
+
+persistence:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: ""
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 256Mi
+  requests:
+    cpu: 25m
+    memory: 64Mi
+
+image:
+  repository: docker.io/couchdb
+  pullPolicy: IfNotPresent
+  tag: 3.5.1
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 5984
+  runAsGroup: 5984
+  runAsUser: 5984
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  runAsNonRoot: true
+  runAsUser: 5984
+
+service:
+  type: ClusterIP
+  port: 5984
+
+httpRoute:
+  enabled: false
+  hostnames:
+  - "{{ .Release.Name }}.example.local"
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: cilium-default
+    namespace: kube-system
+    sectionName: https-local
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: cilium-default
+    namespace: kube-system
+    sectionName: http-local
+
+volumeMounts: []
+# - name: foo
+#   mountPath: "/etc/foo"
+#   readOnly: true
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

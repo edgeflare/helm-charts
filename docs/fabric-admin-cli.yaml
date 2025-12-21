@@ -57,7 +57,7 @@ spec:
       value: /fabric/chaincode/pkg/mod
     - name: GOBIN
       value: /fabric/chaincode/bin
-    image: docker.io/hyperledger/fabric-tools:2.5.4
+    image: ghcr.io/hyperledger/fabric-tools:2.5.14
     imagePullPolicy: Always
     name: install-chaincode
     resources: {}

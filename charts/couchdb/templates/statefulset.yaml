@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    {{- include "couchdb.labels" . | nindent 4 }}
+  name: {{ include "couchdb.fullname" . }}
+spec:
+  podManagementPolicy: Parallel
+  replicas: {{ .Values.cluster.size | default 3 }}
+  selector:
+    matchLabels:
+      {{- include "couchdb.selectorLabels" . | nindent 6 }}
+  serviceName: {{ include "couchdb.fullname" . }}-hl
+  template:
+    metadata:
+      labels:
+        {{- include "couchdb.labels" . | nindent 8 }}
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - -c
+        - |
+          export NODENAME=${HOSTNAME}.${SERVICE_NAME}-hl
+          /docker-entrypoint.sh /opt/couchdb/bin/couchdb
+        env:
+        - name: SERVICE_NAME
+          value: {{ include "couchdb.fullname" . }}
+        envFrom:
+        - secretRef:
+            name: {{ .Values.admin.existingSecretName | default (printf "%s-admin" (include "couchdb.fullname" .)) }}
+        - secretRef:
+            name: {{ include "couchdb.fullname" . }}-etc
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /_up
+            port: 5984
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: couchdb
+        ports:
+        - containerPort: 5984
+          name: http-couchdb
+          protocol: TCP
+        - containerPort: 4369
+          name: tcp-epmd
+          protocol: TCP
+        - containerPort: 9100
+          name: tcp-cluster
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /_up
+            port: 5984
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        volumeMounts:
+        - mountPath: /opt/couchdb/etc/default.d/kubernetes.ini
+          name: config
+          subPath: kubernetes.ini
+        - mountPath: /opt/couchdb/data
+          name: data
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            {{- include "couchdb.selectorLabels" . | nindent 12 }}
+      volumes:
+      - name: config
+        secret:
+          defaultMode: 420
+          items:
+          - key: kubernetes.ini
+            path: kubernetes.ini
+          secretName: {{ .Values.cluster.existingEtcSecretName | default (printf "%s-etc" (include "couchdb.fullname" .)) }}
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      labels:
+        {{- include "couchdb.labels" . | nindent 8 }}
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.persistence.storageSize | default "1Gi" }}
+      storageClassName: {{ .Values.persistence.storageClassName | default "" }}
+---

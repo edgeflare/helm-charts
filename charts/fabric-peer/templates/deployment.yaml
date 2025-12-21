@@ -81,9 +81,6 @@ spec:
         {{- else }}
         emptyDir: {}
         {{- end }}
-      # - name: {{ .Values.peer.name }}-couchdb-data
-      #   persistentVolumeClaim:
-      #     claimName: {{ .Values.peer.name }}-couchdb-data
       - hostPath:
           path: /run/docker.sock
           type: ""
@@ -93,13 +90,13 @@ spec:
         - name: CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: {{ .Release.Name }}-couchdb
-              key: adminPassword
+              name: {{ .Release.Name }}-couchdb-admin
+              key: COUCHDB_PASSWORD
         - name: CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME
           valueFrom:
             secretKeyRef:
-              name: {{ .Release.Name }}-couchdb
-              key: adminUsername
+              name: {{ .Release.Name }}-couchdb-admin
+              key: COUCHDB_USER
         envFrom:
         - configMapRef:
             name: {{ .Values.peer.name }}-env-vars
@@ -141,19 +138,4 @@ spec:
         - mountPath: /var/hyperledger/production
           name: {{ .Values.peer.name }}-data
         workingDir: /fabric
-      # couchdb is deplyed as a subchart https://github.com/apache/couchdb-helm
-      # - env:
-      #   - name: COUCHDB_USER
-      #     value: couchdb
-      #   - name: COUCHDB_PASSWORD
-      #     value: couchdb
-      #   image: hyperledger/fabric-couchdb
-      #   imagePullPolicy: Always
-      #   name: couchdb
-      #   ports:
-      #   - containerPort: 5984
-      #     protocol: TCP
-      #   volumeMounts:
-      #   - mountPath: /opt/couchdb/data
-      #     name: {{ .Values.peer.name }}-couchdb-data
 ---

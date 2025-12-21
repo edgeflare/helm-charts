@@ -58,7 +58,7 @@ spec:
             path: tlsca.crt
       containers:
       - name: peer-channel-join
-        image: docker.io/hyperledger/fabric-peer
+        image: {{ $.Values.image.peer }}
         env:
         - name: CHANNEL_ID
           value: {{ $.Values.channel.id }}

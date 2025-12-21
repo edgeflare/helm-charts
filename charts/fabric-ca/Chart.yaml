@@ -3,7 +3,7 @@ name: fabric-ca
 description: Fabric CA issues enrollment certificates and TLS certificates for Hyperledger Fabric deployments
 type: application
 version: 0.0.1
-appVersion: 1.5.6
+appVersion: 1.5.16
 icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
 keywords: ["hyperledger", "fabric", "fabric-ca", "certificate-authority"]
 annotations:

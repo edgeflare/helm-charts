@@ -123,7 +123,7 @@ spec:
           value: /fabric/orderer/admin/tls/tls.crt
         - name: OSN_TLS_CA_ROOT_CERT
           value: /fabric/orderer/admin/tls/ca.crt
-        image: docker.io/hyperledger/fabric-tools:2.5.4
+        image: {{ .Values.image.tools }}
         name: orderers-join-channel
         volumeMounts:
         - mountPath: /fabric/config/configtx.yaml

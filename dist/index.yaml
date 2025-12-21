@@ -1,14 +1,36 @@
 apiVersion: v1
 entries:
+  couchdb:
+  - annotations:
+      category: Database
+    apiVersion: v2
+    appVersion: 3.5.1
+    created: "2026-02-01T03:14:46.142911362+01:00"
+    description: CouchDB Helm chart for Kubernetes
+    digest: 7252e2d96a30947589acbaca2803bd56f9840b1336d0da2c71deab7900f938c1
+    icon: https://upload.wikimedia.org/wikipedia/commons/7/72/Apache_CouchDB_logo.svg
+    keywords:
+    - couchdb
+    - nosql
+    - database
+    maintainers:
+    - email: dev@edgeflare.io
+      name: edgeflare.io
+      url: https://github.com/edgeflare/charts
+    name: couchdb
+    type: application
+    urls:
+    - couchdb-0.0.1.tgz
+    version: 0.0.1
   fabric-ca:
   - annotations:
       category: Blockchain
     apiVersion: v2
-    appVersion: 1.5.6
-    created: "2024-08-18T11:26:11.072551+02:00"
+    appVersion: 1.5.16
+    created: "2026-02-01T03:14:46.143147638+01:00"
     description: Fabric CA issues enrollment certificates and TLS certificates for
       Hyperledger Fabric deployments
-    digest: 24d65535e3452cbb62392ecd152e0b9aa6f8a6dc1086ea53d1743fae54b4be30
+    digest: 14a2f55846b7770dddc15014c761e5964ad8b3aac036cb71b019a9fa0870fb0a
     icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
     keywords:
     - hyperledger
@@ -29,10 +51,10 @@ entries:
       category: Blockchain
     apiVersion: v2
     appVersion: 2.5.4
-    created: "2024-08-18T11:26:11.072769+02:00"
+    created: "2026-02-01T03:14:46.143360168+01:00"
     description: Installs, approves and commits chaincode on a Hyperledger Fabric
       channel
-    digest: ff0597fd25ecbb893a0857b618856ab59747ee523a3d7dedb580fce70b3a4a86
+    digest: 73d1543a9162bd2185314b66886a0a567d31dccce47ea7daea684a5d2ecc7689
     icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
     keywords:
     - hyperledger
@@ -52,9 +74,9 @@ entries:
       category: Blockchain
     apiVersion: v2
     appVersion: 2.5.4
-    created: "2024-08-18T11:26:11.072979+02:00"
+    created: "2026-02-01T03:14:46.143582196+01:00"
     description: Creates Fabric channel block. Joins orderers and peers to the channel
-    digest: cbc30c249c132f64f2113abe74b5d10314bc3fc93777615735f90f068f7366b0
+    digest: 6e00f83933e20ab5b00ab1d79057d3a59a9ad5d65048b7c61cd457b9a1f68563
     icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
     keywords:
     - hyperledger
@@ -73,11 +95,11 @@ entries:
   - annotations:
       category: Blockchain
     apiVersion: v2
-    appVersion: 2.5.4
-    created: "2024-08-18T11:26:11.073162+02:00"
+    appVersion: 3.1.3
+    created: "2026-02-01T03:14:46.1437971+01:00"
     description: Fabric Orderer validates and packages transactions into Blocks, and
       distribute them to Peers
-    digest: ddabaeb312c290ef505ba3c67c9843f208e3f76bb12585fad5decb8423dff325
+    digest: 34b17b1dc2d3f15b571c5bdedf4961053aae3e72b170598f46b24db54720ba43
     icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
     keywords:
     - hyperledger
@@ -96,18 +118,18 @@ entries:
   - annotations:
       category: Blockchain
     apiVersion: v2
-    appVersion: 2.5.4
-    created: "2024-08-18T11:26:11.07396+02:00"
+    appVersion: 3.1.3
+    created: "2026-02-01T03:14:46.145430849+01:00"
     dependencies:
     - condition: couchdb.enabled
       name: couchdb
-      repository: https://apache.github.io/couchdb-helm
+      repository: https://github.com/edgeflare/charts
       tags:
       - fabric-peer-state-database
-      version: 4.5.6
+      version: 0.0.1
     description: Fabric Peer stores and manages copies of ledgers and smart contracts
       aka chaincode
-    digest: eb1ac242ae8f066fd901efdee821f31fce708f6229a7c691fb935e94755ca0de
+    digest: 1c9c3f54447eae146095d0403412e09128b4aeb69c5d744b52511054ac459986
     icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
     keywords:
     - hyperledger
@@ -127,10 +149,10 @@ entries:
       category: Blockchain
     apiVersion: v2
     appVersion: "2"
-    created: "2024-08-18T11:26:11.074102+02:00"
+    created: "2026-02-01T03:14:46.145620819+01:00"
     description: The official Hyperledger Fabric web UI for viewing transactions,
       blocks, and associated data
-    digest: 83e6d60924f5ccaedff50d4ae931e0bcf9b483cfd03132a90ed4aad7b023241c
+    digest: 9e914a9007431686c4ad985ada441b48a53705817895182c6f2dd7873d7be08d
     icon: https://imagedelivery.net/JANQz1aoc0j0z4-hBEPBbg/4bf349ce-1dd0-4e80-d8e9-34cf8e151300/public
     keywords:
     - hyperledger
@@ -149,9 +171,9 @@ entries:
       category: VPN
     apiVersion: v2
     appVersion: wg-v1.0-coredns-v1.11.1-envoy-v1.31
-    created: "2024-08-18T11:26:11.074325+02:00"
+    created: "2026-02-01T03:14:46.145882029+01:00"
     description: guardian manages wireguard networks and peers
-    digest: 09938f300be8e9f3d2b0572923cb9477f7992ece7999b20e0fba1726268246a8
+    digest: f6eb5b5ca7a34637a5a2364e81de38e4cef91894b17c721de8761e481d44b567
     icon: https://avatars.githubusercontent.com/u/119541358
     keywords:
     - wireguard
@@ -168,4 +190,4 @@ entries:
     urls:
     - wireguard-guardian-0.0.1-alpha.tgz
     version: 0.0.1-alpha
-generated: "2024-08-18T11:26:11.071608+02:00"
+generated: "2026-02-01T03:14:46.1425053+01:00"

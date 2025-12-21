@@ -1,0 +1,27 @@
+{{- if .Values.httpRoute.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  labels:
+    {{- include "couchdb.labels" . | nindent 4 }}
+  name: {{ include "couchdb.fullname" . }}
+spec:
+  hostnames:
+  {{- range .Values.httpRoute.hostnames }}
+  - {{ tpl . $ | quote }}
+  {{- end }}
+  parentRefs:
+  {{- toYaml .Values.httpRoute.parentRefs | nindent 2 }}
+  rules:
+  - backendRefs:
+    - group: ""
+      kind: Service
+      name: {{ include "couchdb.fullname" . }}
+      port: 5984
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+---
+{{- end }}

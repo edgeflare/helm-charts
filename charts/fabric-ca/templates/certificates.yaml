@@ -39,6 +39,7 @@ spec:
     group: cert-manager.io
   privateKey:
     algorithm: ECDSA
+    rotationPolicy: Always
     size: 256
   secretName: ca.{{ .Values.caOrg }}-keypair
 ---
@@ -83,6 +84,7 @@ spec:
     group: cert-manager.io
   privateKey:
     algorithm: ECDSA
+    rotationPolicy: Always
     size: 256
   secretName: tlsca.{{ .Values.caOrg }}-keypair
 ---

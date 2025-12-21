@@ -1,0 +1,121 @@
+{{- if .Values.cluster.autoSetup }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    batch.kubernetes.io/job-name: {{ include "couchdb.fullname" . }}-setup-cluster
+  name: {{ include "couchdb.fullname" . }}-setup-cluster
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ include "couchdb.fullname" . }}
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - -c
+        - |
+          set -euo pipefail
+          
+          SERVICE_HOST="http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@${SERVICE_NAME}"
+          
+          echo "Waiting for cluster nodes to be ready..."
+          for i in $(seq 0 $((CLUSTER_SIZE-1))); do
+            NODE_URL="${SERVICE_HOST}-${i}.${SERVICE_NAME}-hl:${SERVICE_PORT}"
+            until curl -sf "${NODE_URL}/_up" >/dev/null 2>&1; do
+              echo "Waiting for node ${i}..."
+              sleep 2
+            done
+            echo "Node ${i} is ready"
+          done
+          
+          echo "Ensuring _users database exists on all nodes..."
+          for i in $(seq 0 $((CLUSTER_SIZE-1))); do
+            NODE_URL="${SERVICE_HOST}-${i}.${SERVICE_NAME}-hl:${SERVICE_PORT}"
+            if curl -sf "${NODE_URL}/_users" >/dev/null 2>&1; then
+              echo "_users exists on node ${i}"
+            else
+              RESPONSE=$(curl -s -w "\n%{http_code}" -X PUT "${NODE_URL}/_users")
+              HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+              BODY=$(echo "$RESPONSE" | sed '$d')
+              if [[ "$HTTP_CODE" == "201" || "$HTTP_CODE" == "202" ]]; then
+                echo "Created _users on node ${i}"
+              else
+                echo "Failed to create _users on node ${i} (HTTP ${HTTP_CODE}): ${BODY}" >&2
+              fi
+            fi
+          done
+          
+          echo "Setting up cluster..."
+          COORDINATOR="${SERVICE_HOST}-0.${SERVICE_NAME}-hl:${SERVICE_PORT}"
+          
+          for i in $(seq 1 $((CLUSTER_SIZE-1))); do
+            NODENAME="${SERVICE_NAME}-${i}.${SERVICE_NAME}-hl"
+            
+            # Check if node is already in cluster
+            if curl -sf "${COORDINATOR}/_membership" | grep -q "\"${NODENAME}\""; then
+              echo "Node ${i} already in cluster"
+              continue
+            fi
+            
+            echo "Adding node ${i} to cluster..."
+            RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${COORDINATOR}/_cluster_setup" \
+              -H "Content-Type: application/json" \
+              -d '{"action":"add_node","host":"'"${NODENAME}"'","port":"'"${SERVICE_PORT}"'","username":"'"${COUCHDB_USER}"'","password":"'"${COUCHDB_PASSWORD}"'"}')
+            HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+            BODY=$(echo "$RESPONSE" | sed '$d')
+            if [[ "$HTTP_CODE" == "201" || "$HTTP_CODE" == "200" ]]; then
+              echo "Added node ${i}"
+            else
+              echo "Failed to add node ${i} (HTTP ${HTTP_CODE}): ${BODY}" >&2
+            fi
+          done
+          
+          echo "Finalizing cluster setup..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${COORDINATOR}/_cluster_setup" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"finish_cluster"}')
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          if [[ "$HTTP_CODE" == "201" || "$HTTP_CODE" == "200" ]]; then
+            echo "Cluster finalized"
+          else
+            echo "Cluster finalization returned an error (HTTP ${HTTP_CODE}): ${BODY}" >&2
+          fi
+          
+          echo "Verifying cluster..."
+          for i in $(seq 0 $((CLUSTER_SIZE-1))); do
+            echo "Node ${i} status:"
+            curl -s "${SERVICE_HOST}-${i}.${SERVICE_NAME}-hl:${SERVICE_PORT}/_cluster_setup" || echo "Failed to get cluster_setup from node ${i}" >&2
+            curl -s "${SERVICE_HOST}-${i}.${SERVICE_NAME}-hl:${SERVICE_PORT}/_membership" || echo "Failed to get membership from node ${i}" >&2
+          done
+          
+          echo "Cluster setup complete!"
+        env:
+        - name: CLUSTER_SIZE
+          value: {{ .Values.cluster.size | quote }}
+        - name: SERVICE_NAME
+          value: {{ include "couchdb.fullname" . }}
+        - name: SERVICE_PORT
+          value: {{ .Values.service.port | default 5984 | quote }}
+        envFrom:
+        - secretRef:
+            name: {{ .Values.admin.existingSecretName | default (printf "%s-admin" (include "couchdb.fullname" .)) }}
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: IfNotPresent
+        name: setup-cluster
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+      restartPolicy: OnFailure
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+---
+{{- end }}

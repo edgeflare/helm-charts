@@ -34,6 +34,7 @@ spec:
     name: {{ .Values.peer.org }}-issuer
   privateKey:
     algorithm: ECDSA
+    rotationPolicy: Always
     size: 256
   secretName: {{ .Values.peer.name }}-keypair
 ---
@@ -68,6 +69,7 @@ spec:
     name: {{ .Values.peer.org }}-tls-issuer
   privateKey:
     algorithm: ECDSA
+    rotationPolicy: Always
     size: 256
   secretName: {{ .Values.peer.name }}-keypair-tls
 ---

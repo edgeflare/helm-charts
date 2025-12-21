@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "couchdb.fullname" . }}-test-connection"
+  labels:
+    {{- include "couchdb.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+  - name: verify-cluster
+    image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+    command: ['curl']
+    args: ['http://{{ include "couchdb.fullname" . }}:{{ .Values.service.port }}/_up']
+  restartPolicy: Never

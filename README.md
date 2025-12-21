@@ -10,6 +10,8 @@ helm install my-release edgeflare/<chart-name>
 ```
 
 ## Available Charts
+#### Databases
+- [couchdb](./charts/couchdb/)
 #### VPN
 - [wireguard-guardian](./charts/wireguard-guardian/)
 #### Blockchain

@@ -8,9 +8,9 @@ network:
   publicDomain: example.test   # publicly reachable at ca.org1.example.test, ca-org1.example.test
 
 image:
-  repository: docker.io/hyperledger/fabric-ca
+  repository: ghcr.io/hyperledger/fabric-ca
   pullPolicy: IfNotPresent
-  tag: "1.5.6"
+  tag: 1.5.16
 
 # For TLS communication with other orgs.
 # orderer TLS CA cert is distributed to participating org namespaces as a secret named tlsca.orderer-certs

@@ -31,6 +31,7 @@ spec:
     name: {{ .Values.caOrg }}-issuer
   privateKey:
     algorithm: ECDSA
+    rotationPolicy: Always
     size: 256
   secretName: admin-keypair
 ---
@@ -62,6 +63,7 @@ spec:
     name: {{ .Values.caOrg }}-tls-issuer
   privateKey:
     algorithm: ECDSA
+    rotationPolicy: Always
     size: 256
   secretName: admin-keypair-tls
 ---
